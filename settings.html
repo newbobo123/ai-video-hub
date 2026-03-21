@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API设置 | Super AI Video</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding-top: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.success {
+            background: rgba(34,197,94,0.2);
+            color: #4ade80;
+            display: block;
+        }
+        .status.error {
+            background: rgba(239,68,68,0.2);
+            color: #f87171;
+            display: block;
+        }
+        .info-box {
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .info-box a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚙️</div>
+            <div class="title">API 设置</div>
+            <div class="subtitle">配置你的 AI 视频生成 API 密钥</div>
+        </div>
+
+        <div class="info-box">
+            🔑 <strong>如何获取 API 密钥：</strong><br>
+            1. 访问 <a href="https://replicate.com" target="_blank">replicate.com</a><br>
+            2. 用 GitHub 账号登录<br>
+            3. 进入 Settings → API Tokens<br>
+            4. 创建并复制你的 Token
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>🔐</span>
+                <span>Replicate API Token</span>
+            </div>
+            
+            <div class="form-group">
+                <label>API Token (格式: r8_xxxxxxxx)</label>
+                <input type="password" id="apiToken" placeholder="在此粘贴你的 Replicate API Token">
+            </div>
+
+            <button class="btn" onclick="saveToken()">💾 保存设置</button>
+            <button class="btn btn-secondary" onclick="testToken()">🧪 测试连接</button>
+            
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                <span>📊</span>
+                <span>当前状态</span>
+            </div>
+            <div id="currentStatus" style="font-size: 14px; color: #888;">
+                检查中...
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="index.html">← 返回首页</a>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时检查当前状态
+        window.onload = function() {
+            checkStatus();
+        };
+
+        function checkStatus() {
+            const token = localStorage.getItem('api_token');
+            const statusEl = document.getElementById('currentStatus');
+            
+            if (token) {
+                statusEl.innerHTML = '<span style="color: #4ade80;">✓ API 密钥已配置</span><br><span style="font-size: 12px; opacity: 0.7;">' + token.substring(0, 10) + '...' + token.substring(token.length - 5) + '</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color: #f87171;">✗ 未配置 API 密钥</span><br><span style="font-size: 12px;">请输入你的 Replicate API Token</span>';
+            }
+        }
+
+        function saveToken() {
+            const token = document.getElementById('apiToken').value.trim();
+            const statusEl = document.getElementById('status');
+            
+            if (!token) {
+                showStatus('error', '请输入 API Token');
+                return;
+            }
+            
+            if (!token.startsWith('r8_')) {
+                showStatus('error', 'Token 格式错误，应该以 r8_ 开头');
+                return;
+            }
+            
+            // 保存到 localStorage
+            localStorage.setItem('api_token', token);
+            
+            // 同时设置 window.API_TOKEN 供当前页面使用
+            window.API_TOKEN = token;
+            
+            showStatus('success', '✓ API Token 保存成功！');
+            checkStatus();
+            
+            // 3秒后返回首页
+            setTimeout(() => {
+                if (confirm('设置已保存，是否返回首页？')) {
+                    window.location.href = 'index.html';
+                }
+            }, 1000);
+        }
+
+        function testToken() {
+            const token = localStorage.getItem('api_token') || document.getElementById('apiToken').value.trim();
+            
+            if (!token) {
+                showStatus('error', '请先输入 API Token');
+                return;
+            }
+            
+            showStatus('success', '正在测试连接...');
+            
+            // 简单测试：调用 Replicate API 验证 token
+            fetch('https://api.replicate.com/v1/models', {
+                headers: {
+                    'Authorization': 'Token ' + token
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showStatus('success', '✓ API 连接成功！Token 有效');
+                } else {
+                    showStatus('error', '✗ API 连接失败：' + response.status);
+                }
+            })
+            .catch(error => {
+                showStatus('error', '✗ 网络错误：' + error.message);
+            });
+        }
+
+        function showStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'status ' + type;
+            statusEl.textContent = message;
+        }
+    </script>
+</body>
+</html>

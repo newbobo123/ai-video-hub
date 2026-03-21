@@ -1,12 +1,10 @@
-// 从环境变量读取API密钥（Vercel环境变量支持）
+// 从环境变量或 localStorage 读取API密钥
 const API_CONFIG = {
     USE_MOCK: false,
     
     REPLICATE: {
-        // 优先从环境变量读取，否则使用空字符串（需要配置）
-        TOKEN: typeof window !== 'undefined' && window.ENV?.REPLICATE_API_TOKEN 
-            ? window.ENV.REPLICATE_API_TOKEN 
-            : '',
+        // 优先级: 1. window.API_TOKEN  2. localStorage  3. 空字符串
+        TOKEN: (typeof window !== 'undefined' && (window.API_TOKEN || localStorage.getItem('api_token'))) || '',
         MODELS: {
             WAN: 'wavespeedai/wan-2.1-i2v-480p',
             COGVIDEO: 'thudm/cogvideox-5b',
@@ -28,7 +26,11 @@ const API_CONFIG = {
     }
 };
 
-// 向后兼容：如果window.API_TOKEN存在，使用它
-if (typeof window !== 'undefined' && window.API_TOKEN) {
-    API_CONFIG.REPLICATE.TOKEN = window.API_TOKEN;
+// 页面加载时自动从 localStorage 更新 token
+if (typeof window !== 'undefined') {
+    const storedToken = localStorage.getItem('api_token');
+    if (storedToken) {
+        API_CONFIG.REPLICATE.TOKEN = storedToken;
+        window.API_TOKEN = storedToken;
+    }
 }
