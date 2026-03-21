@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI视频生成器 | AI视频工坊</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="generate-page">
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="index.html" class="back-link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <span class="logo">🎬</span>
+            <span class="brand-text">AI视频生成器</span>
+        </div>
+        <div class="nav-credits">
+            <span class="credits-badge">💎 剩余 10 次</span>
+        </div>
+    </nav>
+
+    <main class="generate-main">
+        <div class="generate-container">
+            <!-- 左侧：生成设置 -->
+            <div class="generate-panel">
+                <div class="panel-header">
+                    <h1>🚀 内置AI视频生成</h1>
+                    <p class="panel-desc">集成Wan 2.1、CogVideo等开源模型，无需跳转其他平台</p>
+                </div>
+
+                <!-- 输入模式切换 -->
+                <div class="input-mode-tabs">
+                    <button class="mode-tab active" onclick="switchMode('text')">
+                        <span class="tab-icon">📝</span>
+                        文本生成视频
+                    </button>
+                    <button class="mode-tab" onclick="switchMode('image')">
+                        <span class="tab-icon">🖼️</span>
+                        图片生成视频
+                    </button>
+                </div>
+
+                <!-- 文本输入区 -->
+                <div class="input-section" id="textInputSection">
+                    <label class="input-label">
+                        描述你想要的视频
+                        <span class="input-hint">越详细的描述，生成效果越好</span>
+                    </label>
+                    <textarea 
+                        id="promptInput" 
+                        class="prompt-textarea" 
+                        placeholder="例如：一只金毛犬在沙滩上奔跑，海浪拍打着岸边，夕阳西下，金色阳光洒在狗狗身上，画面温馨治愈..."
+                        rows="4"
+                    ></textarea>
+                    <div class="prompt-actions">
+                        <button class="btn-enhance" onclick="enhancePrompt()">
+                            ✨ AI优化提示词
+                        </button>
+                        <span class="char-count">0/500</span>
+                    </div>
+                </div>
+
+                <!-- 图片输入区 -->
+                <div class="input-section hidden" id="imageInputSection">
+                    <label class="input-label">上传起始图片</label>
+                    <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('imageInput').click()">
+                        <input type="file" id="imageInput" accept="image/*" hidden onchange="handleImageUpload(event)">
+                        <div class="upload-placeholder">
+                            <span class="upload-icon">📤</span>
+                            <p>点击或拖拽上传图片</p>
+                            <span class="upload-hint">支持 JPG、PNG，最大 10MB</span>
+                        </div>
+                        <img id="uploadedImage" class="uploaded-image hidden" alt="上传的图片">
+                    </div>
+                    <div class="image-prompt-section">
+                        <label class="input-label">描述图片如何运动（可选）</label>
+                        <textarea 
+                            id="imagePromptInput" 
+                            class="prompt-textarea" 
+                            placeholder="例如：镜头缓慢推近，背景中有花瓣飘落..."
+                            rows="2"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- 参数设置 -->
+                <div class="settings-section">
+                    <div class="settings-header" onclick="toggleSettings()">
+                        <span>⚙️ 高级设置</span>
+                        <svg class="settings-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </div>
+                    <div class="settings-content" id="settingsContent">
+                        <div class="setting-item">
+                            <label>选择模型</label>
+                            <select id="modelSelect" class="setting-select">
+                                <option value="wan">Wan 2.1（推荐，效果最好）</option>
+                                <option value="cogvideo">CogVideoX（速度快）</option>
+                                <option value="opensora">Open-Sora（开源免费）</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-item">
+                                <label>视频时长</label>
+                                <select id="durationSelect" class="setting-select">
+                                    <option value="2">2秒</option>
+                                    <option value="4" selected>4秒</option>
+                                    <option value="8">8秒（Pro）</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>分辨率</label>
+                                <select id="resolutionSelect" class="setting-select">
+                                    <option value="480p">480p（快）</option>
+                                    <option value="720p" selected>720p</option>
+                                    <option value="1080p">1080p（慢）</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>画面比例</label>
+                            <div class="aspect-ratio-options">
+                                <button class="ratio-btn active" data-ratio="16:9">16:9</button>
+                                <button class="ratio-btn" data-ratio="9:16">9:16</button>
+                                <button class="ratio-btn" data-ratio="1:1">1:1</button>
+                                <button class="ratio-btn" data-ratio="4:3">4:3</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 生成按钮 -->
+                <button class="generate-btn" id="generateBtn" onclick="generateVideo()">
+                    <span class="btn-icon">✨</span>
+                    <span class="btn-text">开始生成视频</span>
+                    <span class="btn-time">预计 30-60 秒</span>
+                </button>
+
+                <!-- 示例提示词 -->
+                <div class="examples-section">
+                    <label class="input-label">💡 不知道写什么？试试这些：</label>
+                    <div class="example-chips">
+                        <span class="chip" onclick="useExample(this)">🐱 猫咪在樱花树下玩耍</span>
+                        <span class="chip" onclick="useExample(this)">🌊 海浪拍打礁石，日落时分</span>
+                        <span class="chip" onclick="useExample(this)">🚀 未来城市飞行汽车</span>
+                        <span class="chip" onclick="useExample(this)">🌸 樱花飘落的日本街道</span>
+                        <span class="chip" onclick="useExample(this)">🏔️ 雪山日出，云雾缭绕</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：生成结果 -->
+            <div class="result-panel">
+                <div class="result-header">
+                    <h3>生成结果</h3>
+                    <button class="btn-history" onclick="showHistory()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                        历史记录
+                    </button>
+                </div>
+
+                <!-- 空状态 -->
+                <div class="result-empty" id="resultEmpty">
+                    <div class="empty-illustration">
+                        <span class="empty-icon">🎬</span>
+                    </div>
+                    <h4>还没有生成视频</h4>
+                    <p>在左侧输入描述，开始你的第一个AI视频创作</p>
+                </div>
+
+                <!-- 生成中状态 -->
+                <div class="result-generating hidden" id="resultGenerating">
+                    <div class="generating-animation">
+                        <div class="video-frame">
+                            <div class="frame-content">
+                                <div class="generating-pulse"></div>
+                                <span class="generating-icon">✨</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p class="generating-text" id="generatingText">正在初始化模型...</p>
+                        <p class="generating-subtext">预计剩余时间: <span id="timeRemaining">45</span>秒</p>
+                    </div>
+                </div>
+
+                <!-- 结果展示 -->
+                <div class="result-content hidden" id="resultContent">
+                    <div class="video-container">
+                        <video id="generatedVideo" controls loop poster>
+                            <source src="" type="video/mp4">
+                        </video>
+                        <div class="video-overlay hidden" id="videoOverlay">
+                            <span class="play-icon">▶</span>
+                        </div>
+                    </div>
+                    <div class="result-actions">
+                        <button class="action-btn primary" onclick="downloadVideo()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            下载视频
+                        </button>
+                        <button class="action-btn" onclick="regenerateVideo()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            重新生成
+                        </button>
+                        <button class="action-btn" onclick="shareVideo()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="18" cy="5" r="3"/>
+                                <circle cx="6" cy="12" r="3"/>
+                                <circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                            分享
+                        </button>
+                    </div>
+                    <div class="result-info">
+                        <div class="info-item">
+                            <span class="info-label">模型</span>
+                            <span class="info-value" id="resultModel">Wan 2.1</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">分辨率</span>
+                            <span class="info-value" id="resultResolution">720p</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">时长</span>
+                            <span class="info-value" id="resultDuration">4秒</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">生成时间</span>
+                            <span class="info-value" id="resultTime">42秒</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="generate.js"></script>
+</body>
+</html>

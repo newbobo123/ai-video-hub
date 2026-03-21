@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super AI Video | 专业AI视频生成平台</title>
+    <meta name="description" content="Super AI Video - 国内领先的AI视频生成平台，输入文字即刻生成电影级视频，支持4K高清输出">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 生成进度遮罩 -->
+    <div id="generatingOverlay" class="generating-overlay">
+        <div class="generating-content">
+            <div class="generating-animation">
+                <div class="spinner"></div>
+            </div>
+            <h3 class="generating-text">正在生成您的视频...</h3>
+            <p class="generating-subtext" id="generatingStatus">正在解析提示词</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="generating-time">预计剩余时间: <span id="timeRemaining">30</span>秒</p>
+        </div>
+    </div>
+
+    <!-- 付费弹窗 -->
+    <div id="paywallModal" class="modal modal-large">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closePaywall()">&times;</span>
+            <div class="paywall-hero">
+                <div class="paywall-badge">🔥 限时5折优惠</div>
+                <h2>解锁无限AI视频生成</h2>
+                <p>新用户首月仅需¥49，享受专业级视频生成服务</p>
+            </div>
+            <div class="pay-plans">
+                <div class="plan-card" data-plan="starter">
+                    <div class="plan-header">
+                        <h4>入门版</h4>
+                        <div class="plan-price">¥19<span>/月</span></div>
+                    </div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> 每月50次生成</li>
+                        <li><span class="check">✓</span> 720P高清输出</li>
+                        <li><span class="check">✓</span> 标准队列</li>
+                        <li><span class="check">✓</span> 基础模型</li>
+                    </ul>
+                    <button class="btn-plan" onclick="selectPlan('starter')">选择方案</button>
+                </div>
+                <div class="plan-card recommended" data-plan="pro">
+                    <div class="plan-badge">最受欢迎</div>
+                    <div class="plan-header">
+                        <h4>专业版</h4>
+                        <div class="plan-price">¥49<span>/月</span></div>
+                        <div class="plan-original">原价 ¥99</div>
+                    </div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> <strong>无限次</strong>生成</li>
+                        <li><span class="check">✓</span> 4K超清输出</li>
+                        <li><span class="check">✓</span> 优先队列</li>
+                        <li><span class="check">✓</span> 全部高级模型</li>
+                        <li><span class="check">✓</span> 商业授权</li>
+                    </ul>
+                    <button class="btn-plan btn-plan-primary" onclick="selectPlan('pro')">立即升级</button>
+                </div>
+                <div class="plan-card" data-plan="enterprise">
+                    <div class="plan-header">
+                        <h4>企业版</h4>
+                        <div class="plan-price">¥199<span>/月</span></div>
+                    </div>
+                    <ul class="plan-features">
+                        <li><span class="check">✓</span> 团队共享账号</li>
+                        <li><span class="check">✓</span> API接口访问</li>
+                        <li><span class="check">✓</span> 专属客服</li>
+                        <li><span class="check">✓</span> 定制模型训练</li>
+                        <li><span class="check">✓</span> SLA保障</li>
+                    </ul>
+                    <button class="btn-plan" onclick="selectPlan('enterprise')">联系销售</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录/注册弹窗 -->
+    <div id="authModal" class="modal">
+        <div class="modal-content modal-auth">
+            <span class="close-btn" onclick="closeAuthModal()">&times;</span>
+            <div class="auth-left">
+                <div class="auth-brand">
+                    <span class="logo-large">🎬</span>
+                    <h3>Super AI Video</h3>
+                    <p>专业AI视频生成平台</p>
+                </div>
+                <div class="auth-stats">
+                    <div class="stat-item">
+                        <span class="stat-num">100万+</span>
+                        <span class="stat-label">视频生成</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num">50万+</span>
+                        <span class="stat-label">活跃用户</span>
+                    </div>
+                </div>
+            </div>
+            <div class="auth-right">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('login')">登录</button>
+                    <button class="auth-tab" onclick="switchAuthTab('register')">注册</button>
+                </div>
+                <div id="loginForm" class="auth-form">
+                    <h3>欢迎回来</h3>
+                    <p class="auth-subtitle">登录后继续创作精彩视频</p>
+                    <input type="email" id="loginEmail" placeholder="邮箱地址" required>
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                    <button class="btn-auth-primary" onclick="handleLogin()">登录</button>
+                    <div class="auth-divider"><span>或使用</span></div>
+                    <button class="btn-auth-social" onclick="socialLogin('google')">
+                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Google账号登录
+                    </button>
+                    <p class="auth-hint">登录即表示同意 <a href="#">服务条款</a> 和 <a href="#">隐私政策</a></p>
+                </div>
+                <div id="registerForm" class="auth-form hidden">
+                    <h3>创建账号</h3>
+                    <p class="auth-subtitle">注册即送 <strong>5次免费生成</strong></p>
+                    <input type="email" id="registerEmail" placeholder="邮箱地址" required>
+                    <input type="password" id="registerPassword" placeholder="密码" required>
+                    <input type="password" id="confirmPassword" placeholder="确认密码" required>
+                    <button class="btn-auth-primary" onclick="handleRegister()">免费注册</button>
+                    <div class="auth-divider"><span>或使用</span></div>
+                    <button class="btn-auth-social" onclick="socialLogin('google')">
+                        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                        Google账号注册
+                    </button>
+                    <p class="auth-hint">已有账号？ <a href="#" onclick="switchAuthTab('login')">立即登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频播放弹窗 -->
+    <div id="videoModal" class="modal modal-video">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeVideoModal()">&times;</span>
+            <div class="video-player">
+                <video id="modalVideo" controls></video>
+            </div>
+            <div class="video-info-panel">
+                <h3 id="videoTitle">视频标题</h3>
+                <p id="videoPrompt">提示词内容</p>
+                <div class="video-stats">
+                    <span>❤️ <span id="videoLikes">1.2k</span></span>
+                    <span>👁️ <span id="videoViews">8.5k</span></span>
+                </div>
+                <div class="video-actions">
+                    <button class="btn-action" onclick="useThisPrompt()">使用此提示词</button>
+                    <button class="btn-action secondary" onclick="likeVideo()">❤️ 点赞</button>
+                    <button class="btn-action secondary" onclick="shareVideo()">📤 分享</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">🎬</span>
+            <span class="brand-text">Super AI Video</span>
+            <span class="nav-badge">Pro</span>
+        </div>
+        <div class="nav-links">
+            <a href="#generate" class="active">AI视频生成</a>
+            <a href="#showcase">优秀作品</a>
+            <a href="#prompts">提示词库</a>
+            <a href="#tools">更多工具</a>
+        </div>
+        <div class="nav-actions">
+            <div id="userSection" class="user-section hidden">
+                <span class="credits">
+                    <span class="credits-icon">💎</span>
+                    <span id="userCredits">5</span>次
+                </span>
+                <button class="btn-upgrade" onclick="openPaywall()">
+                    <span>升级</span>
+                    <span class="upgrade-badge">-50%</span>
+                </button>
+            </div>
+            <div id="authSection">
+                <button class="btn-login" onclick="openAuthModal()">登录</button>
+                <button class="btn-register" onclick="openAuthModal()">免费注册</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        <!-- Hero - 核心生成区 -->
+        <section class="hero-section" id="generate">
+            <div class="hero-bg">
+                <div class="hero-gradient"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-badge-wrap">
+                    <span class="hero-badge">🔥 国内领先的AI视频生成平台</span>
+                    <span class="hero-badge users">👥 50万+用户信赖</span>
+                </div>
+                <h1 class="hero-title">输入文字，<span class="gradient-text">即刻生成视频</span></h1>
+                <p class="hero-desc">无需专业技能，输入描述即可生成电影级AI视频。支持文生视频、图生视频，4K高清输出。</p>
+                
+                <div class="quick-generate-card">
+                    <div class="generate-tabs">
+                        <button class="gen-tab active" onclick="switchGenMode('text')">
+                            <span class="tab-icon">📝</span>
+                            <span>文字生成</span>
+                        </button>
+                        <button class="gen-tab" onclick="switchGenMode('image')">
+                            <span class="tab-icon">🖼️</span>
+                            <span>图片生成</span>
+                        </button>
+                    </div>
+                    <div class="generate-input-wrap">
+                        <textarea id="quickPrompt" placeholder="描述你想要的视频场景，例如：一只金毛犬在海边奔跑，夕阳西下，海浪拍打着沙滩，画面温馨治愈..." rows="3"></textarea>
+                        <div class="generate-toolbar">
+                            <div class="toolbar-left">
+                                <select id="quickStyle" class="toolbar-select">
+                                    <option value="realistic">🎬 写实风格</option>
+                                    <option value="anime">✨ 动漫风格</option>
+                                    <option value="cinematic">🎭 电影风格</option>
+                                    <option value="3d">🎮 3D渲染</option>
+                                </select>
+                                <select id="quickDuration" class="toolbar-select">
+                                    <option value="4">⏱️ 4秒</option>
+                                    <option value="8">⏱️ 8秒</option>
+                                    <option value="16">⏱️ 16秒</option>
+                                </select>
+                            </div>
+                            <button class="btn-generate-main" onclick="quickGenerate()">
+                                <span>✨ 立即生成</span>
+                                <span class="btn-cost">-1次</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hot-prompts">
+                    <span class="hot-label">🔥 热门提示词：</span>
+                    <div class="hot-chips">
+                        <span class="hot-chip" onclick="usePrompt('一只橘猫在樱花树下打滚，花瓣飘落，阳光明媚，日系治愈风格')">🐱 樱花猫咪</span>
+                        <span class="hot-chip" onclick="usePrompt('未来城市夜景，飞行汽车穿梭，霓虹灯闪烁，赛博朋克风格')">🌃 赛博朋克</span>
+                        <span class="hot-chip" onclick="usePrompt('小女孩在草地上追逐蝴蝶，蓝天白云，童话般唯美画面')">🦋 童话场景</span>
+                        <span class="hot-chip" onclick="usePrompt('深海中发光的水母群游动，蓝色幽光，神秘梦幻氛围')">🪼 深海梦幻</span>
+                        <span class="hot-chip" onclick="usePrompt('古风女子在庭院中抚琴，花瓣飘落，水墨画风格')">🎋 古风美人</span>
+                    </div>
+                </div>
+
+                <div class="live-status">
+                    <div class="status-item">
+                        <span class="status-dot live"></span>
+                        <span><strong id="liveUsers">1,247</strong> 人正在生成</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-dot"></span>
+                        <span>今日已生成 <strong id="todayCount">89,432</strong> 个视频</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 实时预览 -->
+        <section class="preview-section" id="previewSection">
+            <div class="section-container">
+                <div class="preview-header">
+                    <h3>🎬 实时生成展示</h3>
+                    <a href="#" class="view-all">查看全部 →</a>
+                </div>
+                <div class="preview-grid">
+                    <div class="preview-card featured">
+                        <div class="preview-video" onclick="playVideo('demo1')">
+                            <video loop muted playsinline poster="https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800">
+                                <source src="https://cdn.pixabay.com/video/2020/05/25/40130-424930032_large.mp4" type="video/mp4">
+                            </video>
+                            <div class="video-overlay">
+                                <span class="play-btn">▶</span>
+                                <span class="video-duration">0:08</span>
+                            </div>
+                        </div>
+                        <div class="preview-info">
+                            <p class="preview-prompt">"宇航员在火星表面行走，红色沙尘暴，史诗级画面"</p>
+                            <div class="preview-meta">
+                                <span class="author">@SpaceExplorer</span>
+                                <span class="stats">❤️ 3.2k · 🔥 trending</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-card">
+                        <div class="preview-video" onclick="playVideo('demo2')">
+                            <video loop muted playsinline poster="https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400">
+                                <source src="https://cdn.pixabay.com/video/2020/04/16/37102-412175983_large.mp4" type="video/mp4">
+                            </video>
+                            <div class="video-overlay">
+                                <span class="play-btn">▶</span>
+                                <span class="video-duration">0:04</span>
+                            </div>
+                        </div>
+                        <div class="preview-info">
+                            <p class="preview-prompt">"樱花飘落的日本街道，阳光穿透花瓣"</p>
+                            <div class="preview-meta">
+                                <span class="author">@SakuraDream</span>
+                                <span class="stats">❤️ 1.8k</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-card">
+                        <div class="preview-video" onclick="playVideo('demo3')">
+                            <video loop muted playsinline poster="https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?w=400">
+                                <source src="https://cdn.pixabay.com/video/2019/10/04/27573-363527458_large.mp4" type="video/mp4">
+                            </video>
+                            <div class="video-overlay">
+                                <span class="play-btn">▶</span>
+                                <span class="video-duration">0:16</span>
+                            </div>
+                        </div>
+                        <div class="preview-info">
+                            <p class="preview-prompt">"海龟在珊瑚礁中游泳，水下世界梦幻"</p>
+                            <div class="preview-meta">
+                                <span class="author">@OceanLife</span>
+                                <span class="stats">❤️ 2.5k</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 作品展示 -->
+        <section class="showcase-section" id="showcase">
+            <div class="section-container">
+                <div class="section-header">
+                    <div class="header-left">
+                        <h2>🎨 优秀AI视频作品</h2>
+                        <p>来自社区创作者的精彩作品，激发你的创作灵感</p>
+                    </div>
+                    <div class="header-filters">
+                        <button class="filter-btn active" onclick="filterShowcase('all')">全部</button>
+                        <button class="filter-btn" onclick="filterShowcase('nature')">自然</button>
+                        <button class="filter-btn" onclick="filterShowcase('character')">人物</button>
+                        <button class="filter-btn" onclick="filterShowcase('scifi')">科幻</button>
+                        <button class="filter-btn" onclick="filterShowcase('art')">艺术</button>
+                    </div>
+                </div>
+                <div class="showcase-grid" id="showcaseGrid">
+                    <div class="showcase-item large" data-category="scifi">
+                        <div class="showcase-video" onclick="openVideoModal('s1')">
+                            <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800" alt="科幻作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:12</span>
+                            </div>
+                            <div class="video-badge">🏆 本周最佳</div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"星际穿越：虫洞奇观"</h4>
+                            <p class="showcase-prompt">Prompt: 宇航员穿越虫洞，周围是扭曲的星云和光线，史诗级科幻场景，4K超清，电影级画面</p>
+                            <div class="showcase-meta">
+                                <div class="author">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" class="avatar">
+                                    <span>@SciFi_Master</span>
+                                </div>
+                                <div class="stats">
+                                    <span>❤️ 12.5k</span>
+                                    <span>👁️ 89.3k</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="showcase-item" data-category="nature">
+                        <div class="showcase-video" onclick="openVideoModal('s2')">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400" alt="自然作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:08</span>
+                            </div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"极光下的驯鹿群"</h4>
+                            <div class="showcase-meta">
+                                <span class="author">@NatureLover</span>
+                                <span class="likes">❤️ 8.3k</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="showcase-item" data-category="character">
+                        <div class="showcase-video" onclick="openVideoModal('s3')">
+                            <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400" alt="人物作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:10</span>
+                            </div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"古风仕女抚琴图"</h4>
+                            <div class="showcase-meta">
+                                <span class="author">@ChineseArt</span>
+                                <span class="likes">❤️ 6.7k</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="showcase-item" data-category="art">
+                        <div class="showcase-video" onclick="openVideoModal('s4')">
+                            <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400" alt="艺术作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:06</span>
+                            </div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"梵高星空流动"</h4>
+                            <div class="showcase-meta">
+                                <span class="author">@ArtFlow</span>
+                                <span class="likes">❤️ 5.2k</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="showcase-item" data-category="nature">
+                        <div class="showcase-video" onclick="openVideoModal('s5')">
+                            <img src="https://images.unsplash.com/photo-1474511320723-9a56873571b7?w=400" alt="自然作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:14</span>
+                            </div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"森林中的鹿"</h4>
+                            <div class="showcase-meta">
+                                <span class="author">@WildLife</span>
+                                <span class="likes">❤️ 4.9k</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="showcase-item" data-category="scifi">
+                        <div class="showcase-video" onclick="openVideoModal('s6')">
+                            <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400" alt="科幻作品">
+                            <div class="video-overlay">
+                                <span class="play-icon">▶</span>
+                                <span class="video-duration">0:09</span>
+                            </div>
+                        </div>
+                        <div class="showcase-info">
+                            <h4>"未来机器人"</h4>
+                            <div class="showcase-meta">
+                                <span class="author">@FutureTech</span>
+                                <span class="likes">❤️ 7.1k</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="showcase-cta">
+                    <button class="btn-primary btn-large" onclick="openAuthModal()">
+                        <span>注册账号，开始创作</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                    <p class="cta-hint">新用户免费获得5次生成机会</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 提示词库 -->
+        <section class="prompts-section" id="prompts">
+            <div class="section-container">
+                <div class="section-header center">
+                    <h2>💡 精选提示词库</h2>
+                    <p>复制即可使用，快速生成高质量视频</p>
+                </div>
+                <div class="prompts-categories">
+                    <button class="prompt-cat active" onclick="filterPrompts('all')">全部</button>
+                    <button class="prompt-cat" onclick="filterPrompts('nature')">🌿 自然风光</button>
+                    <button class="prompt-cat" onclick="filterPrompts('character')">👤 人物角色</button>
+                    <button class="prompt-cat" onclick="filterPrompts('animal')">🐾 动物世界</button>
+                    <button class="prompt-cat" onclick="filterPrompts('scifi')">🚀 科幻未来</button>
+                    <button class="prompt-cat" onclick="filterPrompts('art')">🎨 艺术创意</button>
+                </div>
+                <div class="prompts-grid" id="promptsGrid"></div>
+                <div class="prompts-more">
+                    <button class="btn-secondary" onclick="loadMorePrompts()">加载更多提示词</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能特性 -->
+        <section class="features-section">
+            <div class="section-container">
+                <div class="section-header center">
+                    <h2>🚀 为什么选择 Super AI Video</h2>
+                    <p>专业技术团队打造，为你提供极致的AI视频生成体验</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>极速生成</h3>
+                        <p>平均30秒出片，GPU集群强力支撑，无需漫长等待</p>
+                        <span class="feature-highlight">比同行快 3 倍</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <h3>多种风格</h3>
+                        <p>写实、动漫、电影、3D渲染等多种风格随心切换</p>
+                        <span class="feature-highlight">8+ 种风格</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💎</div>
+                        <h3>高清输出</h3>
+                        <p>支持4K超清分辨率，专业品质满足商用需求</p>
+                        <span class="feature-highlight">最高 4K</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>版权安全</h3>
+                        <p>生成内容可商用，无版权风险，放心使用</p>
+                        <span class="feature-highlight">100% 商用授权</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3>多模型支持</h3>
+                        <p>集成Wan 2.1、CogVideo、Stable Video等顶级模型</p>
+                        <span class="feature-highlight">5+ 模型</span>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌐</div>
+                        <h3>API接入</h3>
+                        <p>企业用户可通过API批量生成，集成到你的应用</p>
+                        <span class="feature-highlight">REST API</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 价格方案 -->
+        <section class="pricing-preview-section">
+            <div class="section-container">
+                <div class="pricing-hero">
+                    <h2>💎 选择适合你的方案</h2>
+                    <p>从免费试用到专业版，满足不同需求</p>
+                </div>
+                <div class="pricing-cards">
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h4>免费版</h4>
+                            <div class="pricing-price">¥0</div>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> 5次免费生成</li>
+                            <li><span class="check">✓</span> 720P输出</li>
+                            <li><span class="check">✓</span> 基础模型</li>
+                            <li><span class="cross">✗</span> 高清输出</li>
+                            <li><span class="cross">✗</span> 优先队列</li>
+                        </ul>
+                        <button class="btn-pricing" onclick="openAuthModal()">免费开始</button>
+                    </div>
+                    <div class="pricing-card popular">
+                        <div class="popular-badge">最受欢迎</div>
+                        <div class="pricing-header">
+                            <h4>专业版</h4>
+                            <div class="pricing-price">¥49<span>/月</span></div>
+                            <div class="pricing-original">原价 ¥99</div>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> <strong>无限次</strong>生成</li>
+                            <li><span class="check">✓</span> 4K超清输出</li>
+                            <li><span class="check">✓</span> 全部高级模型</li>
+                            <li><span class="check">✓</span> 优先队列</li>
+                            <li><span class="check">✓</span> 商业授权</li>
+                        </ul>
+                        <button class="btn-pricing btn-pricing-primary" onclick="openPaywall()">立即升级</button>
+                    </div>
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h4>企业版</h4>
+                            <div class="pricing-price">定制</div>
+                        </div>
+                        <ul class="pricing-features">
+                            <li><span class="check">✓</span> 团队共享</li>
+                            <li><span class="check">✓</span> API访问</li>
+                            <li><span class="check">✓</span> 专属客服</li>
+                            <li><span class="check">✓</span> 定制模型</li>
+                            <li><span class="check">✓</span> SLA保障</li>
+                        </ul>
+                        <button class="btn-pricing" onclick="contactSales()">联系销售</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 其他工具推荐（放在最后） -->
+        <section class="tools-section" id="tools">
+            <div class="section-container">
+                <div class="section-header">
+                    <div class="header-left">
+                        <h2>📚 更多AI视频工具推荐</h2>
+                        <p>探索其他优秀的AI视频生成平台，对比选择最适合你的工具</p>
+                    </div>
+                </div>
+                <div class="tools-intro-box">
+                    <p>除了我们的平台，这些工具也值得尝试。我们为你整理了市面上最热门的AI视频生成工具：</p>
+                </div>
+                <div class="tools-grid" id="toolsGrid"></div>
+                <div class="tools-cta">
+                    <p>🎁 <strong>推荐有礼：</strong>邀请好友注册，双方各得10次免费生成</p>
+                    <button class="btn-secondary" onclick="inviteFriends()">获取邀请链接</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta-section">
+            <div class="cta-bg">
+                <div class="cta-gradient"></div>
+            </div>
+            <div class="cta-content">
+                <h2>🎬 准备好开始创作了吗？</h2>
+                <p>加入50万+创作者的行列，用AI释放你的想象力</p>
+                <div class="cta-buttons">
+                    <button class="btn-primary btn-large" onclick="openAuthModal()">
+                        <span>免费注册</span>
+                        <span>→</span>
+                    </button>
+                    <button class="btn-secondary btn-large" onclick="openPaywall()">查看会员方案</button>
+                </div>
+                <div class="cta-features">
+                    <span class="cta-feature">✓ 注册即送5次</span>
+                    <span class="cta-feature">✓ 无需信用卡</span>
+                    <span class="cta-feature">✓ 随时可取消</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-brand">
+                    <span class="logo">🎬</span>
+                    <div class="brand-info">
+                        <span class="brand-name">Super AI Video</span>
+                        <span class="brand-desc">专业AI视频生成平台</span>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>产品</h4>
+                        <a href="#generate">AI视频生成</a>
+                        <a href="#showcase">作品展示</a>
+                        <a href="#prompts">提示词库</a>
+                        <a href="#" onclick="openPaywall(); return false;">价格方案</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>资源</h4>
+                        <a href="#">使用教程</a>
+                        <a href="#">API文档</a>
+                        <a href="#">常见问题</a>
+                        <a href="#">更新日志</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>公司</h4>
+                        <a href="#">关于我们</a>
+                        <a href="#">联系我们</a>
+                        <a href="#">加入我们</a>
+                        <a href="#">合作伙伴</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>法律</h4>
+                        <a href="#">服务条款</a>
+                        <a href="#">隐私政策</a>
+                        <a href="#">内容政策</a>
+                        <a href="#">版权说明</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="copyright">© 2026 Super AI Video. All rights reserved.</p>
+                <div class="footer-social">
+                    <a href="#" class="social-link">微博</a>
+                    <a href="#" class="social-link">微信</a>
+                    <a href="#" class="social-link">抖音</a>
+                    <a href="#" class="social-link">B站</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="api-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
