@@ -234,13 +234,13 @@ function closeAuthModal() {
     if (modal) modal.classList.remove('active');
 }
 
-function switchAuthTab(tab) {
+function switchAuthTab(tab, element) {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const tabs = document.querySelectorAll('.auth-tab');
     
     tabs.forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
+    if (element) element.classList.add('active');
     
     if (tab === 'login') {
         loginForm.classList.remove('hidden');
@@ -341,11 +341,11 @@ function contactSales() {
 }
 
 // ===== 视频生成功能 (修复版) =====
-function switchGenMode(mode) {
+function switchGenMode(mode, element) {
     currentGenMode = mode;
     const tabs = document.querySelectorAll('.gen-tab');
     tabs.forEach(t => t.classList.remove('active'));
-    event.target.closest('.gen-tab').classList.add('active');
+    if (element) element.classList.add('active');
 }
 
 function usePrompt(prompt) {
@@ -631,9 +631,9 @@ function renderPrompts(category = 'all') {
     `).join('');
 }
 
-function filterPrompts(category) {
+function filterPrompts(category, element) {
     document.querySelectorAll('.prompt-cat').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (element) element.classList.add('active');
     renderPrompts(category);
 }
 
@@ -692,9 +692,9 @@ function renderTools() {
 }
 
 // ===== 作品展示 =====
-function filterShowcase(category) {
+function filterShowcase(category, element) {
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (element) element.classList.add('active');
     
     const items = document.querySelectorAll('.showcase-item');
     items.forEach(item => {
