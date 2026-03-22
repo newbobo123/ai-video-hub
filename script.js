@@ -1,13 +1,45 @@
 // ==========================================
-// Super AI Video - 核心脚本
-// 功能：用户管理、视频生成（支持真实API）、支付、提示词库
+// Super AI Video - 核心脚本 (修复版)
+// 功能：用户管理、真实视频生成（通过后端代理）
 // ==========================================
 
 // ===== API配置 =====
-// 配置已从外部文件(api-config.js)或环境变量加载
-// 如需设置API密钥，请在浏览器控制台执行:
-// window.API_TOKEN = '你的Replicate API Token';
-// 然后刷新页面
+const API_CONFIG = {
+    USE_MOCK: false,
+    PROVIDER: 'replicate', // 或 'fal'
+    
+    REPLICATE: {
+        TOKEN: '',
+        MODELS: {
+            WAN_T2V: 'wavespeedai/wan-2.1-t2v-480p',
+            WAN_I2V: 'wavespeedai/wan-2.1-i2v-480p'
+        }
+    },
+    
+    FAL: {
+        KEY: '',
+        MODELS: {
+            WAN_T2V: 'fal-ai/wan-t2v',
+            WAN_I2V: 'fal-ai/wan-i2v'
+        }
+    }
+};
+
+// 从 localStorage 加载配置
+function loadApiConfig() {
+    const token = localStorage.getItem('api_token');
+    const provider = localStorage.getItem('api_provider') || 'replicate';
+    
+    if (token) {
+        API_CONFIG.PROVIDER = provider;
+        if (provider === 'fal') {
+            API_CONFIG.FAL.KEY = token;
+        } else {
+            API_CONFIG.REPLICATE.TOKEN = token;
+        }
+        console.log(`[API] 已加载 ${provider} 配置`);
+    }
+}
 
 // ===== 提示词数据库 =====
 const PROMPTS_DB = [
@@ -82,42 +114,6 @@ const PROMPTS_DB = [
         usage: '10.2k',
         rating: '97%',
         preview: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'
-    },
-    {
-        id: 9,
-        category: 'scifi',
-        tag: '🚀 科幻未来',
-        text: '未来城市飞行汽车穿梭，全息广告牌，雨夜霓虹，银翼杀手风格，4K超清',
-        usage: '8.9k',
-        rating: '96%',
-        preview: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400'
-    },
-    {
-        id: 10,
-        category: 'art',
-        tag: '🎨 艺术创意',
-        text: '水墨画风格的山水动画，云雾缭绕，仙鹤飞翔，中国传统艺术，意境深远',
-        usage: '6.3k',
-        rating: '94%',
-        preview: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400'
-    },
-    {
-        id: 11,
-        category: 'nature',
-        tag: '🌿 自然风光',
-        text: '极光下的冰岛瀑布，绿色极光舞动，长曝光效果，星空背景，梦幻自然',
-        usage: '9.7k',
-        rating: '98%',
-        preview: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400'
-    },
-    {
-        id: 12,
-        category: 'animal',
-        tag: '🐾 动物世界',
-        text: '蝴蝶在花丛中飞舞，微距摄影，阳光穿透翅膀，彩虹色反光，自然唯美',
-        usage: '5.8k',
-        rating: '93%',
-        preview: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400'
     }
 ];
 
@@ -182,66 +178,6 @@ const TOOLS_DB = [
         price: "$8/月",
         priceType: "paid",
         url: "https://pika.art"
-    },
-    {
-        id: 6,
-        name: "Stable Video Diffusion",
-        icon: "🎨",
-        color: "linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)",
-        tags: ["图像转视频", "开源"],
-        desc: "Stability AI开源模型，可本地部署，4秒视频生成",
-        rating: 4.3,
-        price: "免费/开源",
-        priceType: "free",
-        url: "https://stability.ai"
-    },
-    {
-        id: 7,
-        name: "Sora",
-        icon: "🌌",
-        color: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        tags: ["文本转视频"],
-        desc: "OpenAI出品，目前最强长视频生成，支持60秒连贯视频",
-        rating: 4.9,
-        price: "ChatGPT Plus",
-        priceType: "paid",
-        url: "https://openai.com/sora"
-    },
-    {
-        id: 8,
-        name: "HeyGen",
-        icon: "👤",
-        color: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
-        tags: ["数字人", "口播视频"],
-        desc: "最强AI数字人平台，支持多语言口播，适合营销视频",
-        rating: 4.7,
-        price: "$24/月",
-        priceType: "paid",
-        url: "https://heygen.com"
-    },
-    {
-        id: 9,
-        name: "D-ID",
-        icon: "🗣️",
-        color: "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
-        tags: ["数字人", "照片说话"],
-        desc: "让照片开口说话，支持多语言和不同情绪表达",
-        rating: 4.5,
-        price: "$5.9/月",
-        priceType: "paid",
-        url: "https://d-id.com"
-    },
-    {
-        id: 10,
-        name: "CapCut",
-        icon: "✂️",
-        color: "linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)",
-        tags: ["视频编辑", "AI功能"],
-        desc: "剪映国际版，内置AI文案、AI配音、智能字幕等功能",
-        rating: 4.6,
-        price: "免费",
-        priceType: "free",
-        url: "https://capcut.com"
     }
 ];
 
@@ -249,9 +185,11 @@ const TOOLS_DB = [
 let currentUser = null;
 let currentGenMode = 'text';
 let isGenerating = false;
+let currentGenerationId = null;
 
 // ===== 初始化 =====
 document.addEventListener('DOMContentLoaded', () => {
+    loadApiConfig();
     initApp();
 });
 
@@ -402,7 +340,7 @@ function contactSales() {
     showToast('请联系 sales@superaivideo.com', 'info');
 }
 
-// ===== 视频生成功能 =====
+// ===== 视频生成功能 (修复版) =====
 function switchGenMode(mode) {
     currentGenMode = mode;
     const tabs = document.querySelectorAll('.gen-tab');
@@ -419,12 +357,40 @@ function usePrompt(prompt) {
     }
 }
 
-// 主要生成函数
+// 检查 API 配置
+function checkApiConfig() {
+    const token = localStorage.getItem('api_token');
+    const provider = localStorage.getItem('api_provider') || 'replicate';
+    
+    if (!token) {
+        return {
+            valid: false,
+            message: '请先配置 API Key',
+            action: () => window.location.href = 'settings.html'
+        };
+    }
+    
+    return {
+        valid: true,
+        token: token,
+        provider: provider
+    };
+}
+
+// 主要生成函数 (修复版 - 调用后端代理)
 async function quickGenerate() {
     const prompt = document.getElementById('quickPrompt')?.value?.trim();
     
     if (!prompt) {
         showToast('请输入视频描述', 'error');
+        return;
+    }
+    
+    // 检查 API 配置
+    const config = checkApiConfig();
+    if (!config.valid) {
+        showToast(config.message + '，正在跳转设置页面...', 'error');
+        setTimeout(() => config.action(), 1500);
         return;
     }
     
@@ -448,29 +414,46 @@ async function quickGenerate() {
     isGenerating = true;
     
     try {
-        let videoUrl;
+        // 调用后端 API 代理
+        const response = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                style: style,
+                duration: parseInt(duration),
+                provider: config.provider,
+                apiKey: config.token
+            })
+        });
         
-        if (API_CONFIG.USE_MOCK) {
-            videoUrl = await mockGenerate(prompt, style, duration);
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || data.message || '生成请求失败');
+        }
+        
+        // 如果直接返回了视频 URL
+        if (data.videoUrl) {
+            handleGenerationComplete(data.videoUrl, prompt);
+            return;
+        }
+        
+        // 需要轮询
+        if (data.predictionId || data.requestId) {
+            currentGenerationId = {
+                provider: config.provider,
+                predictionId: data.predictionId,
+                requestId: data.requestId,
+                apiKey: config.token
+            };
+            
+            await pollGenerationStatus(currentGenerationId, prompt);
         } else {
-            videoUrl = await generateWithAPI(prompt, style, duration);
+            throw new Error('服务器返回无效响应');
         }
-        
-        // 扣除积分
-        if (!currentUser.isPro) {
-            currentUser.credits--;
-            localStorage.setItem('sa_user', JSON.stringify(currentUser));
-            updateUIForLoggedInUser();
-        }
-        
-        // 保存历史
-        saveToHistory({ prompt, style, duration, videoUrl, timestamp: Date.now() });
-        
-        hideGeneratingOverlay();
-        showToast('视频生成成功！', 'success');
-        
-        // 显示结果
-        showVideoResult(videoUrl, prompt);
         
     } catch (error) {
         hideGeneratingOverlay();
@@ -480,158 +463,83 @@ async function quickGenerate() {
     }
 }
 
-// 模拟生成
-function mockGenerate(prompt, style, duration) {
-    return new Promise((resolve) => {
-        const stages = [
-            { progress: 10, text: '正在解析提示词...', time: 40 },
-            { progress: 30, text: '加载AI模型中...', time: 30 },
-            { progress: 50, text: '生成视频帧...', time: 20 },
-            { progress: 70, text: '优化画面质量...', time: 15 },
-            { progress: 90, text: '最终渲染中...', time: 5 },
-            { progress: 100, text: '生成完成！', time: 0 }
-        ];
+// 轮询生成状态
+async function pollGenerationStatus(genId, prompt) {
+    const maxAttempts = 60; // 最多轮询2分钟
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 2000)); // 每2秒查询一次
         
-        let currentStage = 0;
-        
-        const interval = setInterval(() => {
-            if (currentStage < stages.length) {
-                const stage = stages[currentStage];
-                updateGeneratingProgress(stage.progress, stage.text, stage.time);
-                currentStage++;
-            } else {
-                clearInterval(interval);
-                const demoVideos = [
-                    'https://cdn.pixabay.com/video/2020/05/25/40130-424930032_large.mp4',
-                    'https://cdn.pixabay.com/video/2020/04/16/37102-412175983_large.mp4',
-                    'https://cdn.pixabay.com/video/2019/10/04/27573-363527458_large.mp4'
-                ];
-                resolve(demoVideos[Math.floor(Math.random() * demoVideos.length)]);
+        try {
+            const response = await fetch('/api/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    provider: genId.provider,
+                    predictionId: genId.predictionId,
+                    requestId: genId.requestId,
+                    apiKey: genId.apiKey
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || '查询状态失败');
             }
-        }, 800);
-    });
-}
-
-// 真实API生成
-async function generateWithAPI(prompt, style, duration) {
-    // 优先使用配置的真实API
-    const useReplicate = API_CONFIG.REPLICATE.TOKEN && API_CONFIG.REPLICATE.TOKEN.length > 10;
-    const useFal = API_CONFIG.FAL.KEY && API_CONFIG.FAL.KEY.length > 10;
-    
-    if (useFal) {
-        return await generateWithFal(prompt, style, duration);
-    } else if (useReplicate) {
-        return await generateWithReplicate(prompt, style, duration);
-    } else {
-        // 没有配置API，使用模拟
-        console.log('未配置真实API，使用模拟模式');
-        return await mockGenerate(prompt, style, duration);
-    }
-}
-
-// Fal.ai API
-async function generateWithFal(prompt, style, duration) {
-    updateGeneratingProgress(10, '正在连接Fal.ai服务...', 45);
-    
-    const response = await fetch('https://api.fal.ai/v1/video/generate', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Key ${API_CONFIG.FAL.KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            prompt: prompt,
-            duration: parseInt(duration),
-            style: style,
-            aspect_ratio: '16:9'
-        })
-    });
-    
-    if (!response.ok) {
-        throw new Error('API请求失败: ' + response.status);
-    }
-    
-    const data = await response.json();
-    
-    // 轮询结果
-    if (data.request_id) {
-        return await pollFalResult(data.request_id);
-    }
-    
-    return data.video_url;
-}
-
-async function pollFalResult(requestId) {
-    for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 2000));
-        
-        const response = await fetch(`https://api.fal.ai/v1/requests/${requestId}`, {
-            headers: { 'Authorization': `Key ${API_CONFIG.FAL.KEY}` }
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'completed') {
-            return data.output.video_url;
-        } else if (data.status === 'failed') {
-            throw new Error('生成失败: ' + data.error);
-        }
-        
-        updateGeneratingProgress(30 + i, '生成中...', 60 - i);
-    }
-    
-    throw new Error('生成超时');
-}
-
-// Replicate API
-async function generateWithReplicate(prompt, style, duration) {
-    updateGeneratingProgress(10, '正在连接Replicate...', 45);
-    
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Token ${API_CONFIG.REPLICATE.TOKEN}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            version: "wavespeedai/wan-2.1-i2v-480p:latest",
-            input: {
-                prompt: prompt,
-                num_frames: parseInt(duration) * 8,
-                fps: 8,
-                guidance_scale: 7.5
+            
+            if (data.status === 'completed') {
+                handleGenerationComplete(data.videoUrl, prompt);
+                return;
+            } else if (data.status === 'failed') {
+                throw new Error(data.error || '生成失败');
             }
-        })
-    });
-    
-    if (!response.ok) {
-        throw new Error('API请求失败: ' + response.status);
+            
+            // 更新进度
+            const progress = data.progress || Math.min(90, 20 + attempts * 1.5);
+            updateGeneratingProgress(progress, data.logs || '生成中...', maxAttempts - attempts);
+            
+            attempts++;
+            
+        } catch (error) {
+            hideGeneratingOverlay();
+            isGenerating = false;
+            showToast('查询生成状态失败: ' + error.message, 'error');
+            return;
+        }
     }
     
-    const data = await response.json();
-    return await pollReplicateResult(data.id);
+    // 超时
+    hideGeneratingOverlay();
+    isGenerating = false;
+    showToast('生成超时，请稍后检查历史记录', 'error');
 }
 
-async function pollReplicateResult(predictionId) {
-    for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 2000));
-        
-        const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-            headers: { 'Authorization': `Token ${API_CONFIG.REPLICATE.TOKEN}` }
-        });
-        
-        const data = await response.json();
-        
-        if (data.status === 'succeeded') {
-            return data.output;
-        } else if (data.status === 'failed') {
-            throw new Error('生成失败: ' + data.error);
-        }
-        
-        updateGeneratingProgress(30 + i * 1, data.logs || '生成中...', 60 - i);
+// 生成完成处理
+function handleGenerationComplete(videoUrl, prompt) {
+    // 扣除积分
+    if (!currentUser.isPro) {
+        currentUser.credits--;
+        localStorage.setItem('sa_user', JSON.stringify(currentUser));
+        updateUIForLoggedInUser();
     }
     
-    throw new Error('生成超时');
+    // 保存历史
+    saveToHistory({ 
+        prompt, 
+        videoUrl, 
+        timestamp: Date.now(),
+        provider: API_CONFIG.PROVIDER
+    });
+    
+    hideGeneratingOverlay();
+    showToast('视频生成成功！', 'success');
+    
+    // 显示结果
+    showVideoResult(videoUrl, prompt);
 }
 
 // 生成进度显示
@@ -651,17 +559,41 @@ function updateGeneratingProgress(progress, text, timeLeft) {
     const status = document.getElementById('generatingStatus');
     const time = document.getElementById('timeRemaining');
     
-    if (fill) fill.style.width = progress + '%';
-    if (status) status.textContent = text;
-    if (time) time.textContent = timeLeft;
+    if (fill) fill.style.width = Math.min(100, Math.max(0, progress)) + '%';
+    if (status) status.textContent = typeof text === 'string' ? text.substring(0, 100) : '生成中...';
+    if (time) time.textContent = Math.ceil(timeLeft * 2) + '秒';
 }
 
 // 显示生成结果
 function showVideoResult(videoUrl, prompt) {
-    // 可以在这里添加结果显示逻辑
-    console.log('生成的视频:', videoUrl);
-    // 滚动到预览区
-    document.getElementById('previewSection')?.scrollIntoView({ behavior: 'smooth' });
+    // 创建结果弹窗
+    const modal = document.createElement('div');
+    modal.className = 'modal modal-video active';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close-btn" onclick="this.closest('.modal').remove()">&times;</span>
+            <h3 style="margin-bottom: 20px;">🎉 视频生成成功！</h3>
+            <div class="video-player" style="margin-bottom: 20px;">
+                <video src="${videoUrl}" controls autoplay style="width: 100%; border-radius: 12px;"></video>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #888; font-size: 14px; margin-bottom: 8px;">提示词：</p>
+                <p style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">${escapeHtml(prompt)}</p>
+            </div>
+            <div class="video-actions" style="display: flex; gap: 12px; justify-content: center;">
+                <a href="${videoUrl}" download class="btn-action" style="text-decoration: none;">⬇️ 下载视频</a>
+                <button class="btn-action secondary" onclick="copyVideoUrl('${videoUrl}')">📋 复制链接</button>
+                <button class="btn-action secondary" onclick="this.closest('.modal').remove()">关闭</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function copyVideoUrl(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('视频链接已复制', 'success');
+    });
 }
 
 // ===== 提示词功能 =====

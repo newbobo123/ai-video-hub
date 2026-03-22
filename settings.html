@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
             padding-top: 40px;
         }
@@ -49,6 +49,39 @@
             align-items: center;
             gap: 8px;
         }
+        .provider-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .provider-tab {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .provider-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .provider-tab.active {
+            border-color: #6366f1;
+            color: #fff;
+            background: rgba(99,102,241,0.1);
+        }
+        .provider-tab .icon {
+            font-size: 24px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .provider-tab .name {
+            font-size: 14px;
+            font-weight: 500;
+        }
         .form-group {
             margin-bottom: 20px;
         }
@@ -72,6 +105,11 @@
             outline: none;
             border-color: #6366f1;
         }
+        .input-help {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
         .btn {
             width: 100%;
             padding: 14px;
@@ -82,27 +120,44 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 12px;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .btn-secondary {
             background: rgba(255,255,255,0.1);
+            margin-top: 12px;
         }
         .status {
-            padding: 12px;
+            padding: 16px;
             border-radius: 8px;
             margin-top: 16px;
             font-size: 14px;
             display: none;
+            line-height: 1.6;
         }
         .status.success {
-            background: rgba(34,197,94,0.2);
+            background: rgba(34,197,94,0.15);
             color: #4ade80;
             display: block;
+            border: 1px solid rgba(34,197,94,0.3);
         }
         .status.error {
-            background: rgba(239,68,68,0.2);
+            background: rgba(239,68,68,0.15);
             color: #f87171;
             display: block;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .status.loading {
+            background: rgba(59,130,246,0.15);
+            color: #60a5fa;
+            display: block;
+            border: 1px solid rgba(59,130,246,0.3);
         }
         .info-box {
             background: rgba(59,130,246,0.1);
@@ -117,6 +172,22 @@
             color: #60a5fa;
             text-decoration: none;
         }
+        .info-box a:hover {
+            text-decoration: underline;
+        }
+        .steps {
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        .steps ol {
+            margin-left: 20px;
+            color: #aaa;
+        }
+        .steps li {
+            margin-bottom: 8px;
+        }
         .back-link {
             text-align: center;
             margin-top: 20px;
@@ -126,6 +197,34 @@
             text-decoration: none;
             font-size: 14px;
         }
+        .back-link a:hover {
+            color: #fff;
+        }
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+        .api-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .api-status .dot.active {
+            background: #4ade80;
+            box-shadow: 0 0 8px #4ade80;
+        }
+        .api-status .dot.inactive {
+            background: #666;
+        }
+        .api-status .text {
+            font-size: 14px;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
@@ -133,30 +232,43 @@
         <div class="header">
             <div class="logo">⚙️</div>
             <div class="title">API 设置</div>
-            <div class="subtitle">配置你的 AI 视频生成 API 密钥</div>
+            <div class="subtitle">配置 AI 视频生成 API 密钥</div>
         </div>
 
         <div class="info-box">
-            🔑 <strong>如何获取 API 密钥：</strong><br>
-            1. 访问 <a href="https://replicate.com" target="_blank">replicate.com</a><br>
-            2. 用 GitHub 账号登录<br>
-            3. 进入 Settings → API Tokens<br>
-            4. 创建并复制你的 Token
+            <strong>💡 如何选择 API 提供商？</strong><br><br>
+            <strong>Replicate</strong> - 模型丰富，支持 Wan 2.1、CogVideo 等<br>
+            <strong>Fal.ai</strong> - 速度更快，价格更低，支持实时预览<br><br>
+            你需要先在对应平台注册账号并获取 API Key。
         </div>
 
         <div class="card">
             <div class="card-title">
-                <span>🔐</span>
-                <span>Replicate API Token</span>
+                <span>🔧</span>
+                <span>选择提供商</span>
             </div>
             
-            <div class="form-group">
-                <label>API Token (格式: r8_xxxxxxxx)</label>
-                <input type="password" id="apiToken" placeholder="在此粘贴你的 Replicate API Token">
+            <div class="provider-tabs">
+                <div class="provider-tab active" onclick="selectProvider('replicate')" id="tab-replicate">
+                    <span class="icon">🧬</span>
+                    <span class="name">Replicate</span>
+                </div>
+                <div class="provider-tab" onclick="selectProvider('fal')" id="tab-fal">
+                    <span class="icon">⚡</span>
+                    <span class="name">Fal.ai</span>
+                </div>
             </div>
 
-            <button class="btn" onclick="saveToken()">💾 保存设置</button>
-            <button class="btn btn-secondary" onclick="testToken()">🧪 测试连接</button>
+            <div class="form-group">
+                <label id="tokenLabel">Replicate API Token (格式: r8_xxxxxxxx)</label>
+                <input type="password" id="apiToken" placeholder="在此粘贴你的 API Token">
+                <div class="input-help" id="tokenHelp">
+                    可从 <a href="https://replicate.com/account/api-tokens" target="_blank">replicate.com/account/api-tokens</a> 获取
+                </div>
+            </div>
+
+            <button class="btn" id="saveBtn" onclick="saveToken()">💾 保存设置</button>
+            <button class="btn btn-secondary" id="testBtn" onclick="testToken()">🧪 测试连接</button>
             
             <div id="status" class="status"></div>
         </div>
@@ -166,8 +278,22 @@
                 <span>📊</span>
                 <span>当前状态</span>
             </div>
-            <div id="currentStatus" style="font-size: 14px; color: #888;">
-                检查中...
+            <div id="currentStatus">
+                <div class="api-status">
+                    <span class="dot inactive" id="statusDot"></span>
+                    <span class="text" id="statusText">检查中...</span>
+                </div>
+            </div>
+            
+            <div class="steps" style="margin-top: 16px;">
+                <strong style="color: #fff;">配置步骤：</strong>
+                <ol>
+                    <li>点击上方选择一个提供商</li>
+                    <li>复制对应平台的 API Token</li>
+                    <li>粘贴到输入框并保存</li>
+                    <li>点击"测试连接"验证是否有效</li>
+                    <li>返回首页开始生成视频</li>
+                </ol>
             </div>
         </div>
 
@@ -177,19 +303,62 @@
     </div>
 
     <script>
+        let currentProvider = 'replicate';
+        
         // 页面加载时检查当前状态
         window.onload = function() {
             checkStatus();
+            // 从 localStorage 加载已保存的提供商
+            const savedProvider = localStorage.getItem('api_provider');
+            if (savedProvider) {
+                selectProvider(savedProvider);
+            }
         };
+        
+        function selectProvider(provider) {
+            currentProvider = provider;
+            
+            // 更新 tab 样式
+            document.querySelectorAll('.provider-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab-${provider}`).classList.add('active');
+            
+            // 更新标签和帮助文本
+            const tokenLabel = document.getElementById('tokenLabel');
+            const tokenHelp = document.getElementById('tokenHelp');
+            
+            if (provider === 'fal') {
+                tokenLabel.textContent = 'Fal.ai API Key (格式: xxxx-xxxx-xxxx-xxxx)';
+                tokenHelp.innerHTML = '可从 <a href="https://fal.ai/dashboard/keys" target="_blank">fal.ai/dashboard/keys</a> 获取';
+            } else {
+                tokenLabel.textContent = 'Replicate API Token (格式: r8_xxxxxxxx)';
+                tokenHelp.innerHTML = '可从 <a href="https://replicate.com/account/api-tokens" target="_blank">replicate.com/account/api-tokens</a> 获取';
+            }
+            
+            // 加载已保存的 token
+            const savedToken = localStorage.getItem('api_token');
+            const savedProvider = localStorage.getItem('api_provider');
+            if (savedToken && savedProvider === provider) {
+                document.getElementById('apiToken').value = savedToken;
+            } else {
+                document.getElementById('apiToken').value = '';
+            }
+        }
 
         function checkStatus() {
             const token = localStorage.getItem('api_token');
-            const statusEl = document.getElementById('currentStatus');
+            const provider = localStorage.getItem('api_provider') || 'replicate';
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
             
             if (token) {
-                statusEl.innerHTML = '<span style="color: #4ade80;">✓ API 密钥已配置</span><br><span style="font-size: 12px; opacity: 0.7;">' + token.substring(0, 10) + '...' + token.substring(token.length - 5) + '</span>';
+                dot.className = 'dot active';
+                text.innerHTML = `<span style="color: #4ade80;">${provider === 'fal' ? 'Fal.ai' : 'Replicate'} API 已配置</span><br><span style="font-size: 12px; opacity: 0.7;">Token: ${token.substring(0, 8)}...${token.substring(token.length - 4)}</span>`;
+                document.getElementById('apiToken').value = token;
             } else {
-                statusEl.innerHTML = '<span style="color: #f87171;">✗ 未配置 API 密钥</span><br><span style="font-size: 12px;">请输入你的 Replicate API Token</span>';
+                dot.className = 'dot inactive';
+                text.innerHTML = '<span style="color: #f87171;">未配置 API 密钥</span><br><span style="font-size: 12px;">请先在上方配置 Token</span>';
             }
         }
 
@@ -202,60 +371,82 @@
                 return;
             }
             
-            if (!token.startsWith('r8_')) {
-                showStatus('error', 'Token 格式错误，应该以 r8_ 开头');
+            // 简单的格式验证
+            if (currentProvider === 'replicate' && !token.startsWith('r8_')) {
+                showStatus('error', 'Replicate Token 格式错误，应该以 r8_ 开头');
                 return;
             }
             
             // 保存到 localStorage
             localStorage.setItem('api_token', token);
+            localStorage.setItem('api_provider', currentProvider);
             
-            // 同时设置 window.API_TOKEN 供当前页面使用
-            window.API_TOKEN = token;
-            
-            showStatus('success', '✓ API Token 保存成功！');
+            showStatus('success', `✓ ${currentProvider === 'fal' ? 'Fal.ai' : 'Replicate'} API Token 保存成功！`);
             checkStatus();
             
-            // 3秒后返回首页
+            // 3秒后询问是否返回首页
             setTimeout(() => {
-                if (confirm('设置已保存，是否返回首页？')) {
+                if (confirm('设置已保存，是否返回首页开始生成视频？')) {
                     window.location.href = 'index.html';
                 }
             }, 1000);
         }
 
-        function testToken() {
-            const token = localStorage.getItem('api_token') || document.getElementById('apiToken').value.trim();
+        async function testToken() {
+            const token = document.getElementById('apiToken').value.trim();
+            const statusEl = document.getElementById('status');
             
             if (!token) {
                 showStatus('error', '请先输入 API Token');
                 return;
             }
             
-            showStatus('success', '正在测试连接...');
+            showStatus('loading', '🔄 正在测试连接，请稍候...');
             
-            // 简单测试：调用 Replicate API 验证 token
-            fetch('https://api.replicate.com/v1/models', {
-                headers: {
-                    'Authorization': 'Token ' + token
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    showStatus('success', '✓ API 连接成功！Token 有效');
+            // 禁用按钮
+            const testBtn = document.getElementById('testBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            testBtn.disabled = true;
+            saveBtn.disabled = true;
+            
+            try {
+                // 调用后端 API 验证
+                const response = await fetch('/api/validate-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        provider: currentProvider,
+                        apiKey: token
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('success', `✓ ${data.message}<br>可用模型: ${data.models} 个<br><br>Token 有效！可以开始生成视频了。`);
+                    // 自动保存
+                    localStorage.setItem('api_token', token);
+                    localStorage.setItem('api_provider', currentProvider);
+                    checkStatus();
                 } else {
-                    showStatus('error', '✗ API 连接失败：' + response.status);
+                    showStatus('error', `✗ 验证失败: ${data.error}<br><br>请检查你的 API Key 是否正确。`);
                 }
-            })
-            .catch(error => {
-                showStatus('error', '✗ 网络错误：' + error.message);
-            });
+                
+            } catch (error) {
+                showStatus('error', `✗ 网络错误: ${error.message}<br><br>请检查网络连接，或稍后再试。`);
+            } finally {
+                // 恢复按钮
+                testBtn.disabled = false;
+                saveBtn.disabled = false;
+            }
         }
 
         function showStatus(type, message) {
             const statusEl = document.getElementById('status');
             statusEl.className = 'status ' + type;
-            statusEl.textContent = message;
+            statusEl.innerHTML = message;
         }
     </script>
 </body>
