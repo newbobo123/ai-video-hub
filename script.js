@@ -692,3 +692,79 @@ document.addEventListener('click', function(e) {
 });
 
 console.log('[App] 脚本加载完成');
+
+// ===== 缺失函数补充 =====
+
+// 关闭视频弹窗
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    if (modal) {
+        modal.classList.remove('active');
+        // 停止视频播放
+        const video = document.getElementById('modalVideo');
+        if (video) {
+            video.pause();
+            video.src = '';
+        }
+    }
+}
+
+// 使用当前视频的提示词
+function useThisPrompt() {
+    const promptText = document.getElementById('videoPrompt');
+    if (promptText) {
+        const prompt = promptText.textContent || '';
+        usePrompt(prompt);
+        closeVideoModal();
+        showToast('提示词已填入生成框', 'success');
+    }
+}
+
+// 点赞视频
+function likeVideo() {
+    const likesEl = document.getElementById('videoLikes');
+    if (likesEl) {
+        let likes = parseInt(likesEl.textContent.replace(/,/g, '')) || 0;
+        likes++;
+        likesEl.textContent = likes.toLocaleString();
+        showToast('❤️ 已点赞', 'success');
+    }
+}
+
+// 播放视频
+function playVideo(videoId) {
+    console.log('[Video] 播放视频:', videoId);
+    // 获取对应的视频元素
+    const videoMap = {
+        'demo1': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'demo2': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        'demo3': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+    };
+    
+    const videoUrl = videoMap[videoId];
+    if (!videoUrl) {
+        showToast('视频未找到', 'error');
+        return;
+    }
+    
+    // 打开视频弹窗
+    const modal = document.getElementById('videoModal');
+    const video = document.getElementById('modalVideo');
+    const title = document.getElementById('videoTitle');
+    const prompt = document.getElementById('videoPrompt');
+    
+    if (modal && video) {
+        video.src = videoUrl;
+        video.load();
+        modal.classList.add('active');
+        
+        // 设置示例标题和提示词
+        if (title) title.textContent = 'AI 生成视频演示';
+        if (prompt) prompt.textContent = '示例提示词：这是一段AI生成的演示视频';
+        
+        // 自动播放
+        video.play().catch(function(e) {
+            console.log('[Video] 自动播放被阻止:', e);
+        });
+    }
+}
