@@ -266,16 +266,6 @@ function quickGenerate() {
         return;
     }
     
-    // 检查 API 配置
-    const token = localStorage.getItem('api_token');
-    if (!token) {
-        showToast('请先配置 API Key', 'error');
-        setTimeout(function() {
-            window.location.href = 'settings.html';
-        }, 1500);
-        return;
-    }
-    
     if (!currentUser) {
         openAuthModal();
         showToast('请先登录后开始生成', 'info');
@@ -288,12 +278,24 @@ function quickGenerate() {
         return;
     }
     
+    // 检查是否使用真实 API 生成
+    const useRealAPI = localStorage.getItem('use_real_api') === 'true';
+    
+    // 只有真实API模式才需要检查API Key
+    if (useRealAPI) {
+        const token = localStorage.getItem('api_token');
+        if (!token) {
+            showToast('请先配置 API Key', 'error');
+            setTimeout(function() {
+                window.location.href = 'settings.html';
+            }, 1500);
+            return;
+        }
+    }
+    
     // 显示生成进度
     showGeneratingOverlay();
     isGenerating = true;
-    
-    // 检查是否使用真实 API 生成
-    const useRealAPI = localStorage.getItem('use_real_api') === 'true';
     
     if (useRealAPI) {
         // 使用真实 API 生成（支持文生视频和图生视频）
