@@ -504,17 +504,33 @@ function finishGeneration(prompt) {
     hideGeneratingOverlay();
     isGenerating = false;
     
-    // ⚠️ 演示模式：使用短视频片段（不是完整影片）
-    // 这些是从示例视频中截取的10秒片段，仅用于演示效果
+    // ⚠️ 演示模式：使用真正的短视频文件（不是长视频片段）
+    // 这些是公开的真实短视频素材，时长都在10秒以内
     const demoVideos = [
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4#t=60,70',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4#t=120,130',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=30,40'
+        {
+            url: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
+            name: 'Big Buck Bunny (10秒)',
+            duration: '10秒'
+        },
+        {
+            url: 'https://filesamples.com/samples/video/mp4/sample_640x360.mp4',
+            name: 'Sample Nature (5秒)', 
+            duration: '5秒'
+        },
+        {
+            url: 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+            name: 'Sample Video (10秒)',
+            duration: '10秒'
+        }
     ];
-    const videoUrl = demoVideos[Math.floor(Math.random() * demoVideos.length)];
     
-    console.log('[Demo] 使用演示视频片段（10秒）');
-    showToast('演示视频生成完成！（注：这是10秒示例片段，真实AI生成请开启API模式并配置Token）', 'info');
+    const randomVideo = demoVideos[Math.floor(Math.random() * demoVideos.length)];
+    
+    // 添加时间戳防止缓存，并强制从头播放
+    const videoUrl = randomVideo.url + '?v=' + Date.now();
+    
+    console.log('[Demo] 使用演示视频:', randomVideo.name);
+    showToast(`演示视频生成完成！（${randomVideo.duration}示例，非AI生成）`, 'info');
     showVideoResult(videoUrl, prompt);
 }
 
