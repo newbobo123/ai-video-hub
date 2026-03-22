@@ -312,7 +312,7 @@ async function generateWithRealAPI(prompt, imageData) {
     const style = document.getElementById('quickStyle')?.value || 'realistic';
     
     try {
-        showGeneratingProgress(10, '正在连接 AI 服务...', 60);
+        updateGeneratingProgress(10, '正在连接 AI 服务...', 60);
         
         const response = await fetch('/api/generate-video', {
             method: 'POST',
@@ -374,7 +374,7 @@ async function pollGenerationStatus(data, provider, prompt) {
             return;
         }
         
-        showGeneratingProgress(
+        updateGeneratingProgress(
             Math.min(10 + attempts * 1.5, 95),
             `正在生成中... (${attempts}/${maxAttempts})`,
             maxAttempts - attempts
