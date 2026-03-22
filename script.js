@@ -298,8 +298,23 @@ function showVideoResult(videoUrl, prompt) {
     modal.innerHTML = '<div class="modal-content" style="max-width: 800px;">' +
         '<span class="close-btn" onclick="this.closest(\'.modal\').remove()">&times;</span>' +
         '<h3 style="margin-bottom: 20px;">🎉 视频生成成功！</h3>' +
-        '<div class="video-player" style="margin-bottom: 20px;">' +
-            '<video src="' + videoUrl + '" controls autoplay style="width: 100%; border-radius: 12px;"></video>' +
+        '<div class="video-player" style="margin-bottom: 20px; background: #000; border-radius: 12px; overflow: hidden;">' +
+            '<video ' +
+                'src="' + videoUrl + '" ' +
+                'controls ' +
+                'autoplay ' +
+                'playsinline ' +
+                'muted ' +
+                'preload="auto" ' +
+                'style="width: 100%; display: block;"' +
+                'onerror="videoError(this)"' +
+            '>' +
+                '<p style="padding: 20px; color: #888; text-align: center;">' +
+                    '您的浏览器不支持视频播放。' +
+                    '<br>' +
+                    '<a href="' + videoUrl + '" target="_blank" style="color: #6366f1;">点击这里查看视频</a>' +
+                '</p>' +
+            '</video>' +
         '</div>' +
         '<div style="margin-bottom: 20px;">' +
             '<p style="color: #888; font-size: 14px; margin-bottom: 8px;">提示词：</p>' +
@@ -312,6 +327,28 @@ function showVideoResult(videoUrl, prompt) {
         '</div>' +
     '</div>';
     document.body.appendChild(modal);
+    
+    // 尝试加载视频
+    const video = modal.querySelector('video');
+    if (video) {
+        video.load();
+        video.play().catch(function(e) {
+            console.log('[Video] 自动播放被阻止:', e);
+        });
+    }
+}
+
+// 视频加载错误处理
+function videoError(video) {
+    console.error('[Video] 加载失败:', video.src);
+    video.parentElement.innerHTML = 
+        '<div style="padding: 40px; text-align: center; color: #888;">' +
+            '<p>视频加载失败</p>' +
+            '<p style="font-size: 12px; margin-top: 10px;">可能是网络问题或视频链接失效</p>' +
+            '<a href="' + video.src + '" target="_blank" style="color: #6366f1; display: inline-block; margin-top: 15px;">' +
+                '尝试直接打开视频' +
+            '</a>' +
+        '</div>';
 }
 
 function copyVideoUrl(url) {
