@@ -298,6 +298,23 @@
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-title">
+                <span>⚙️</span>
+                <span>高级设置</span>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                    <span>使用真实 AI 生成</span>
+                    <input type="checkbox" id="realApiToggle" onchange="toggleRealAPI(this)" style="width: 20px; height: 20px; accent-color: #6366f1;">
+                </label>
+                <p style="font-size: 12px; color: #888; margin-top: 8px;">
+                    开启后将调用真实的 Replicate/Fal.ai API 生成视频（消耗 API 余额）<br>
+                    关闭则使用演示模式（免费，但视频是示例）
+                </p>
+            </div>
+        </div>
+
         <div class="back-link">
             <a href="index.html">← 返回首页</a>
         </div>
@@ -314,7 +331,20 @@
             if (savedProvider) {
                 selectProvider(savedProvider);
             }
+            // 加载真实API设置
+            const useRealAPI = localStorage.getItem('use_real_api') === 'true';
+            document.getElementById('realApiToggle').checked = useRealAPI;
         };
+        
+        // 切换真实API模式
+        function toggleRealAPI(checkbox) {
+            localStorage.setItem('use_real_api', checkbox.checked);
+            showStatus(checkbox.checked ? 'success' : 'info', 
+                checkbox.checked 
+                    ? '✓ 已开启真实 AI 生成模式<br><br>将使用您的 API Token 调用真实模型生成视频（消耗余额）' 
+                    : 'ℹ 已切换到演示模式<br><br>使用示例视频展示（不消耗余额）'
+            );
+        }
         
         function selectProvider(provider) {
             currentProvider = provider;

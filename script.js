@@ -292,11 +292,149 @@ function quickGenerate() {
     showGeneratingOverlay();
     isGenerating = true;
     
-    // 模拟生成过程
-    simulateGeneration(prompt);
+    // 检查是否使用真实 API 生成
+    const useRealAPI = localStorage.getItem('use_real_api') === 'true';
+    
+    if (useRealAPI && currentGenMode === 'text') {
+        // 使用真实 API 生成
+        generateWithRealAPI(prompt, imageData);
+    } else {
+        // 模拟生成过程（演示模式）
+        simulateGeneration(prompt, imageData);
+    }
 }
 
-function simulateGeneration(prompt) {
+// 使用真实 API 生成视频
+async function generateWithRealAPI(prompt, imageData) {
+    const token = localStorage.getItem('api_token');
+    const provider = localStorage.getItem('api_provider') || 'replicate';
+    const duration = document.getElementById('quickDuration')?.value || '4';
+    const style = document.getElementById('quickStyle')?.value || 'realistic';
+    
+    try {
+        showGeneratingProgress(10, '正在连接 AI 服务...', 60);
+        
+        const response = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                style: style,
+                duration: duration,
+                provider: provider,
+                apiKey: token,
+                imageUrl: imageData || null
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || '生成失败');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.status === 'completed' && data.videoUrl) {
+                // 直接完成
+                finishRealGeneration(prompt, data.videoUrl);
+            } else if (data.status === 'processing' && (data.predictionId || data.requestId)) {
+                // 需要轮询
+                pollGenerationStatus(data, provider, prompt);
+            }
+        } else {
+            throw new Error(data.error || '生成失败');
+        }
+        
+    } catch (error) {
+        hideGeneratingOverlay();
+        isGenerating = false;
+        showToast('生成失败: ' + error.message, 'error');
+        console.error('[Generate] API 错误:', error);
+    }
+}
+
+// 轮询生成状态
+async function pollGenerationStatus(data, provider, prompt) {
+    const maxAttempts = 60; // 最多轮询60次（约2分钟）
+    let attempts = 0;
+    
+    const id = data.predictionId || data.requestId;
+    const token = localStorage.getItem('api_token');
+    
+    const checkStatus = async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+            hideGeneratingOverlay();
+            isGenerating = false;
+            showToast('生成超时，请稍后查看历史记录', 'warning');
+            return;
+        }
+        
+        showGeneratingProgress(
+            Math.min(10 + attempts * 1.5, 95),
+            `正在生成中... (${attempts}/${maxAttempts})`,
+            maxAttempts - attempts
+        );
+        
+        try {
+            let statusUrl;
+            let headers = {};
+            
+            if (provider === 'fal') {
+                statusUrl = `https://api.fal.ai/v1/requests/${id}`;
+                headers['Authorization'] = `Key ${token}`;
+            } else {
+                statusUrl = `https://api.replicate.com/v1/predictions/${id}`;
+                headers['Authorization'] = `Token ${token}`;
+            }
+            
+            const response = await fetch(statusUrl, { headers });
+            const result = await response.json();
+            
+            if (result.status === 'succeeded' || result.status === 'completed') {
+                const videoUrl = result.output?.video || result.video_url || result.output;
+                if (videoUrl) {
+                    finishRealGeneration(prompt, videoUrl);
+                    return;
+                }
+            } else if (result.status === 'failed' || result.status === 'error') {
+                throw new Error(result.error || '生成失败');
+            }
+            
+            // 继续轮询
+            setTimeout(checkStatus, 3000);
+            
+        } catch (error) {
+            hideGeneratingOverlay();
+            isGenerating = false;
+            showToast('状态检查失败: ' + error.message, 'error');
+        }
+    };
+    
+    setTimeout(checkStatus, 3000);
+}
+
+// 完成真实生成
+function finishRealGeneration(prompt, videoUrl) {
+    // 扣除积分
+    if (!currentUser.isPro) {
+        currentUser.credits--;
+        localStorage.setItem('sa_user', JSON.stringify(currentUser));
+        updateUIForLoggedInUser();
+    }
+    
+    hideGeneratingOverlay();
+    isGenerating = false;
+    
+    showToast('视频生成成功！', 'success');
+    showVideoResult(videoUrl, prompt);
+}
+
+function simulateGeneration(prompt, imageData) {
     const stages = [
         { progress: 10, text: '正在解析提示词...' },
         { progress: 30, text: '加载AI模型中...' },
@@ -333,10 +471,11 @@ function finishGeneration(prompt) {
     hideGeneratingOverlay();
     isGenerating = false;
     
-    // 演示视频URL
+    // 演示视频URL - 使用多个CDN确保可用性
     const demoVideos = [
-        'https://cdn.pixabay.com/video/2020/05/25/40130-424930032_large.mp4',
-        'https://cdn.pixabay.com/video/2020/04/16/37102-412175983_large.mp4'
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
     ];
     const videoUrl = demoVideos[Math.floor(Math.random() * demoVideos.length)];
     
