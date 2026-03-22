@@ -295,8 +295,8 @@ function quickGenerate() {
     // 检查是否使用真实 API 生成
     const useRealAPI = localStorage.getItem('use_real_api') === 'true';
     
-    if (useRealAPI && currentGenMode === 'text') {
-        // 使用真实 API 生成
+    if (useRealAPI) {
+        // 使用真实 API 生成（支持文生视频和图生视频）
         generateWithRealAPI(prompt, imageData);
     } else {
         // 模拟生成过程（演示模式）
@@ -504,15 +504,17 @@ function finishGeneration(prompt) {
     hideGeneratingOverlay();
     isGenerating = false;
     
-    // 演示视频URL - 使用多个CDN确保可用性
+    // ⚠️ 演示模式：使用短视频片段（不是完整影片）
+    // 这些是从示例视频中截取的10秒片段，仅用于演示效果
     const demoVideos = [
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4#t=60,70',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4#t=120,130',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4#t=30,40'
     ];
     const videoUrl = demoVideos[Math.floor(Math.random() * demoVideos.length)];
     
-    showToast('视频生成成功！', 'success');
+    console.log('[Demo] 使用演示视频片段（10秒）');
+    showToast('演示视频生成完成！（注：这是10秒示例片段，真实AI生成请开启API模式并配置Token）', 'info');
     showVideoResult(videoUrl, prompt);
 }
 
@@ -538,12 +540,23 @@ function updateGeneratingProgress(progress, text, timeLeft) {
 }
 
 function showVideoResult(videoUrl, prompt) {
+    // 检测当前模式
+    const useRealAPI = localStorage.getItem('use_real_api') === 'true';
+    const isDemo = !useRealAPI || videoUrl.includes('gtv-videos-bucket');
+    
+    // 模式标签
+    const modeBadge = isDemo 
+        ? '<span style="background: #f59e0b; color: #000; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">演示模式</span>'
+        : '<span style="background: #10b981; color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">AI 生成</span>';
+    
     // 创建结果弹窗
     const modal = document.createElement('div');
     modal.className = 'modal modal-video active';
     modal.innerHTML = '<div class="modal-content" style="max-width: 800px;">' +
         '<span class="close-btn" onclick="this.closest(\'.modal\').remove()">&times;</span>' +
-        '<h3 style="margin-bottom: 20px;">🎉 视频生成成功！</h3>' +
+        '<h3 style="margin-bottom: 10px;">🎉 视频生成成功！</h3>' +
+        '<div style="margin-bottom: 15px;">' + modeBadge + '</div>' +
+        (isDemo ? '<div style="background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; color: #f59e0b;">⚠️ 这是演示视频片段。如需真实AI生成，请在<a href="settings.html" style="color: #6366f1;">设置页</a>开启「真实AI生成」模式并配置API Token。</div>' : '') +
         '<div class="video-player" style="margin-bottom: 20px; background: #000; border-radius: 12px; overflow: hidden;">' +
             '<video ' +
                 'src="' + videoUrl + '" ' +
@@ -570,6 +583,9 @@ function showVideoResult(videoUrl, prompt) {
             '<a href="' + videoUrl + '" download class="btn-action" style="text-decoration: none;">⬇️ 下载视频</a>' +
             '<button class="btn-action secondary" onclick="copyVideoUrl(\'' + videoUrl + '\')">📋 复制链接</button>' +
             '<button class="btn-action secondary" onclick="this.closest(\'.modal\').remove()">关闭</button>' +
+        '</div>' +
+    '</div>';
+    document.body.appendChild(modal);
         '</div>' +
     '</div>';
     document.body.appendChild(modal);
