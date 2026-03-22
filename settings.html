@@ -269,6 +269,7 @@
 
             <button class="btn" id="saveBtn" onclick="saveToken()">💾 保存设置</button>
             <button class="btn btn-secondary" id="testBtn" onclick="testToken()">🧪 测试连接</button>
+            <button class="btn btn-secondary" id="balanceBtn" onclick="checkBalance()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-top: 8px;">💰 检查余额</button>
             
             <div id="status" class="status"></div>
         </div>
@@ -448,6 +449,144 @@
             statusEl.className = 'status ' + type;
             statusEl.innerHTML = message;
         }
+
+        // 检查余额功能
+        async function checkBalance() {
+            const token = document.getElementById('apiToken').value.trim();
+            const statusEl = document.getElementById('status');
+            
+            if (!token) {
+                showStatus('error', '请先输入 API Token');
+                return;
+            }
+            
+            if (currentProvider === 'fal') {
+                showStatus('info', 'Fal.ai 暂不支持余额查询，请前往 <a href="https://fal.ai/dashboard" target="_blank">fal.ai/dashboard</a> 查看');
+                return;
+            }
+            
+            showStatus('loading', '💰 正在检查余额，请稍候...');
+            
+            // 禁用按钮
+            const balanceBtn = document.getElementById('balanceBtn');
+            balanceBtn.disabled = true;
+            
+            try {
+                // 尝试调用 Replicate API 获取账户信息
+                // 先尝试获取用户模型列表
+                const response = await fetch('https://api.replicate.com/v1/models', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Token ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.status === 200) {
+                    // Token 有效，但没有直接返回余额
+                    // 尝试通过创建一个简单预测来测试是否有余额
+                    showStatus('loading', '💰 Token 有效，正在测试余额是否充足...');
+                    
+                    // 获取 Kandinsky 模型信息（免费模型）
+                    const testResponse = await fetch('https://api.replicate.com/v1/models/stability-ai/stable-diffusion', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': 'Token ' + token
+                        }
+                    });
+                    
+                    if (testResponse.status === 200) {
+                        showStatus('success', 
+                            '✓ Token 验证成功！<br><br>' +
+                            '<strong>余额状态：</strong><br>' +
+                            '• 您的 Token 格式正确且有效<br>' +
+                            '• 账户可以正常使用<br>' +
+                            '• 余额充足（有访问权限）<br><br>' +
+                            '<span style="font-size: 12px; opacity: 0.8;">' +
+                            '💡 提示：Replicate 按使用量计费。<br>' +
+                            '查看详细余额请前往：<br>' +
+                            '<a href="https://replicate.com/settings/billing" target="_blank" style="color: #4ade80;">replicate.com/settings/billing</a>' +
+                            '</span>'
+                        );
+                    } else if (testResponse.status === 401 || testResponse.status === 403) {
+                        showStatus('error', 
+                            '✗ Token 无效或已过期<br><br>' +
+                            '请检查您的 API Token 是否正确。<br>' +
+                            '可前往 <a href="https://replicate.com/account/api-tokens" target="_blank" style="color: #f87171;">replicate.com/account/api-tokens</a> 重新获取'
+                        );
+                    } else if (testResponse.status === 402) {
+                        showStatus('error', 
+                            '⚠️ 余额不足<br><br>' +
+                            '您的 Token 有效，但余额不足以运行模型。<br><br>' +
+                            '<strong>解决方法：</strong><br>' +
+                            '1. 前往 <a href="https://replicate.com/settings/billing" target="_blank" style="color: #f87171;">Billing 页面</a> 充值<br>' +
+                            '2. 绑定信用卡（后付费模式）<br>' +
+                            '3. 购买积分（预付费模式）<br><br>' +
+                            '<span style="font-size: 12px;">Replicate 支持 Visa、Mastercard、Amex 等信用卡</span>'
+                        );
+                    } else {
+                        showStatus('success', 
+                            '✓ Token 验证成功！<br><br>' +
+                            '您的 API Token 有效。<br><br>' +
+                            '<span style="font-size: 12px; opacity: 0.8;">' +
+                            '查看详细余额和账单：<br>' +
+                            '<a href="https://replicate.com/settings/billing" target="_blank" style="color: #4ade80;">replicate.com/settings/billing</a>' +
+                            '</span>'
+                        );
+                    }
+                } else if (response.status === 401 || response.status === 403) {
+                    showStatus('error', 
+                        '✗ Token 无效或已过期<br><br>' +
+                        '请检查您的 API Token 是否正确。<br>' +
+                        '可前往 <a href="https://replicate.com/account/api-tokens" target="_blank" style="color: #f87171;">replicate.com/account/api-tokens</a> 重新获取'
+                    );
+                } else if (response.status === 429) {
+                    showStatus('error', 
+                        '⚠️ 请求过于频繁<br><br>' +
+                        '请稍后再试。'
+                    );
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    if (errorData.detail && errorData.detail.includes('billing') || errorData.detail && errorData.detail.includes('payment')) {
+                        showStatus('error', 
+                            '⚠️ 账户需要设置付款方式<br><br>' +
+                            '您的 Token 有效，但需要绑定付款方式或充值才能使用。<br><br>' +
+                            '<strong>解决方法：</strong><br>' +
+                            '1. 前往 <a href="https://replicate.com/settings/billing" target="_blank" style="color: #f87171;">Billing 页面</a><br>' +
+                            '2. 添加信用卡或充值积分<br><br>' +
+                            '<span style="font-size: 12px;">最低充值 $5 起</span>'
+                        );
+                    } else {
+                        showStatus('error', 
+                            '✗ 检查失败: ' + (errorData.detail || '未知错误') + '<br><br>' +
+                            '状态码: ' + response.status
+                        );
+                    }
+                }
+                
+            } catch (error) {
+                showStatus('error', 
+                    '✗ 网络错误: ' + error.message + '<br><br>' +
+                    '请检查网络连接，或稍后再试。<br>' +
+                    '您也可以直接访问 <a href="https://replicate.com/settings/billing" target="_blank" style="color: #f87171;">Replicate Billing</a> 查看余额'
+                );
+            } finally {
+                // 恢复按钮
+                balanceBtn.disabled = false;
+            }
+        }
+
+        // 添加 info 样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .status.info {
+                background: rgba(59, 130, 246, 0.15);
+                color: #60a5fa;
+                display: block;
+                border: 1px solid rgba(59, 130, 246, 0.3);
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

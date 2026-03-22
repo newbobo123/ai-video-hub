@@ -218,27 +218,44 @@
                             <span>图片生成</span>
                         </button>
                     </div>
-                    <div class="generate-input-wrap">
+                    
+                    <!-- 文字生成输入区 -->
+                    <div id="textInputSection" class="generate-input-wrap">
                         <textarea id="quickPrompt" placeholder="描述你想要的视频场景，例如：一只金毛犬在海边奔跑，夕阳西下，海浪拍打着沙滩，画面温馨治愈..." rows="3"></textarea>
-                        <div class="generate-toolbar">
-                            <div class="toolbar-left">
-                                <select id="quickStyle" class="toolbar-select">
-                                    <option value="realistic">🎬 写实风格</option>
-                                    <option value="anime">✨ 动漫风格</option>
-                                    <option value="cinematic">🎭 电影风格</option>
-                                    <option value="3d">🎮 3D渲染</option>
-                                </select>
-                                <select id="quickDuration" class="toolbar-select">
-                                    <option value="4">⏱️ 4秒</option>
-                                    <option value="8">⏱️ 8秒</option>
-                                    <option value="16">⏱️ 16秒</option>
-                                </select>
+                    </div>
+                    
+                    <!-- 图片生成输入区 -->
+                    <div id="imageInputSection" class="generate-input-wrap hidden">
+                        <div class="image-upload-area" onclick="document.getElementById('imageUpload').click()">
+                            <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
+                            <div class="upload-placeholder" id="uploadPlaceholder">
+                                <span class="upload-icon">📷</span>
+                                <p>点击上传图片或拍照</p>
+                                <span class="upload-hint">支持 JPG、PNG 格式</span>
                             </div>
-                            <button class="btn-generate-main" onclick="quickGenerate()">
-                                <span>✨ 立即生成</span>
-                                <span class="btn-cost">-1次</span>
-                            </button>
+                            <img id="uploadedImage" class="uploaded-image hidden" alt="上传的图片">
+                            <button type="button" class="btn-change-image hidden" id="changeImageBtn" onclick="event.stopPropagation(); document.getElementById('imageUpload').click()">更换图片</button>
                         </div>
+                        <textarea id="imagePrompt" placeholder="描述你想要的动画效果，例如：花瓣飘落，阳光闪烁，微风吹拂..." rows="2" style="margin-top:12px;"></textarea>
+                    </div>
+                    
+                    <div class="generate-toolbar">
+                        <div class="toolbar-left">
+                            <select id="quickStyle" class="toolbar-select">
+                                <option value="realistic">🎬 写实风格</option>
+                                <option value="anime">✨ 动漫风格</option>
+                                <option value="cinematic">🎭 电影风格</option>
+                                <option value="3d">🎮 3D渲染</option>
+                            </select>
+                            <select id="quickDuration" class="toolbar-select">
+                                <option value="4">⏱️ 4秒</option>
+                                <option value="8">⏱️ 8秒</option>
+                            </select>
+                        </div>
+                        <button class="btn-generate-main" onclick="quickGenerate()">
+                            <span>✨ 立即生成</span>
+                            <span class="btn-cost">-1次</span>
+                        </button>
                     </div>
                 </div>
 

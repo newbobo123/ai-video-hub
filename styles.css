@@ -2244,3 +2244,94 @@ body {
         gap: 12px;
     }
 }
+
+/* ===== 图片上传区域样式 ===== */
+.image-upload-area {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: rgba(255, 255, 255, 0.02);
+    position: relative;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.image-upload-area.has-image {
+    padding: 10px;
+    border-style: solid;
+    border-color: var(--primary);
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.upload-placeholder p {
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.upload-hint {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.uploaded-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+}
+
+.uploaded-image.hidden {
+    display: none;
+}
+
+.btn-change-image {
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-change-image:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-change-image.hidden {
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 生成输入区切换 */
+#textInputSection,
+#imageInputSection {
+    transition: var(--transition);
+}
+
+#imageInputSection.hidden {
+    display: none;
+}
