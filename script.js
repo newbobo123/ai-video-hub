@@ -308,8 +308,10 @@ function quickGenerate() {
 async function generateWithRealAPI(prompt, imageData) {
     const token = localStorage.getItem('api_token');
     const provider = localStorage.getItem('api_provider') || 'replicate';
-    const duration = document.getElementById('quickDuration')?.value || '4';
-    const style = document.getElementById('quickStyle')?.value || 'realistic';
+    const durationEl = document.getElementById('quickDuration');
+    const styleEl = document.getElementById('quickStyle');
+    const duration = durationEl ? durationEl.value : '4';
+    const style = styleEl ? styleEl.value : 'realistic';
     
     try {
         updateGeneratingProgress(10, '正在连接 AI 服务...', 60);
@@ -376,7 +378,7 @@ async function pollGenerationStatus(data, provider, prompt) {
         
         updateGeneratingProgress(
             Math.min(10 + attempts * 1.5, 95),
-            `正在生成中... (${attempts}/${maxAttempts})`,
+            '正在生成中... (' + attempts + '/' + maxAttempts + ')',
             maxAttempts - attempts
         );
         
@@ -386,50 +388,52 @@ async function pollGenerationStatus(data, provider, prompt) {
             let result;
             
             if (provider === 'fal') {
-                statusUrl = `https://api.fal.ai/v1/requests/${id}`;
-                headers['Authorization'] = `Key ${token}`;
-                const response = await fetch(statusUrl, { headers });
+                statusUrl = 'https://api.fal.ai/v1/requests/' + id;
+                headers['Authorization'] = 'Key ' + token;
+                const response = await fetch(statusUrl, { headers: headers });
                 result = await response.json();
             } 
             else if (provider === 'aliyun') {
                 // 阿里云需要解析AccessKey
-                const [accessKeyId] = token.split(':');
-                statusUrl = `https://dashscope.aliyuncs.com/api/v1/tasks/${id}`;
-                headers['Authorization'] = `Bearer ${accessKeyId}`;
-                const response = await fetch(statusUrl, { headers });
+                const accessKeyId = token.split(':')[0];
+                statusUrl = 'https://dashscope.aliyuncs.com/api/v1/tasks/' + id;
+                headers['Authorization'] = 'Bearer ' + accessKeyId;
+                const response = await fetch(statusUrl, { headers: headers });
                 result = await response.json();
                 
                 // 阿里云状态映射
-                if (result.output?.task_status === 'SUCCEEDED') {
-                    const videoUrl = result.output.video_url || result.output.video_url_list?.[0];
+                var output = result.output || {};
+                if (output.task_status === 'SUCCEEDED') {
+                    var videoUrl = output.video_url || (output.video_url_list ? output.video_url_list[0] : null);
                     if (videoUrl) {
                         finishRealGeneration(prompt, videoUrl);
                         return;
                     }
-                } else if (result.output?.task_status === 'FAILED') {
-                    throw new Error(result.output?.message || '阿里云生成失败');
+                } else if (output.task_status === 'FAILED') {
+                    throw new Error(output.message || '阿里云生成失败');
                 }
                 // 继续轮询
                 setTimeout(checkStatus, 3000);
                 return;
             }
             else if (provider === 'siliconflow') {
-                statusUrl = `https://api.siliconflow.cn/v1/video/generations/${id}`;
-                headers['Authorization'] = `Bearer ${token}`;
-                const response = await fetch(statusUrl, { headers });
+                statusUrl = 'https://api.siliconflow.cn/v1/video/generations/' + id;
+                headers['Authorization'] = 'Bearer ' + token;
+                const response = await fetch(statusUrl, { headers: headers });
                 result = await response.json();
             }
             else {
                 // Replicate
-                statusUrl = `https://api.replicate.com/v1/predictions/${id}`;
-                headers['Authorization'] = `Token ${token}`;
-                const response = await fetch(statusUrl, { headers });
+                statusUrl = 'https://api.replicate.com/v1/predictions/' + id;
+                headers['Authorization'] = 'Token ' + token;
+                const response = await fetch(statusUrl, { headers: headers });
                 result = await response.json();
             }
             
             // 通用状态处理
             if (result.status === 'succeeded' || result.status === 'completed') {
-                const videoUrl = result.output?.video || result.video_url || result.output || result.url;
+                var output = result.output || {};
+                var videoUrl = output.video || result.video_url || result.output || result.url;
                 if (videoUrl) {
                     finishRealGeneration(prompt, videoUrl);
                     return;
@@ -530,7 +534,7 @@ function finishGeneration(prompt) {
     const videoUrl = randomVideo.url + '?v=' + Date.now();
     
     console.log('[Demo] 使用演示视频:', randomVideo.name);
-    showToast(`演示视频生成完成！（${randomVideo.duration}示例，非AI生成）`, 'info');
+    showToast('演示视频生成完成！（' + randomVideo.duration + '示例，非AI生成）', 'info');
     showVideoResult(videoUrl, prompt);
 }
 
@@ -602,12 +606,9 @@ function showVideoResult(videoUrl, prompt) {
         '</div>' +
     '</div>';
     document.body.appendChild(modal);
-        '</div>' +
-    '</div>';
-    document.body.appendChild(modal);
     
     // 尝试加载视频
-    const video = modal.querySelector('video');
+    var video = modal.querySelector('video');
     if (video) {
         video.load();
         video.play().catch(function(e) {
