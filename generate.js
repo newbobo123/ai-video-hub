@@ -99,7 +99,7 @@ function toggleSettings() {
     }
 }
 
-// 生成视频
+// 生成视频 - 调用真实API
 async function generateVideo() {
     if (isGenerating) return;
     
@@ -123,6 +123,16 @@ async function generateVideo() {
         prompt = imagePromptInput ? imagePromptInput.value.trim() : '图像动画';
     }
     
+    // 获取API设置
+    const settings = JSON.parse(localStorage.getItem('aiVideoHub_settings') || '{}');
+    const apiKey = settings.apiKey;
+    const provider = settings.provider || 'replicate';
+    
+    if (!apiKey) {
+        alert('请先设置API密钥\n点击左下角"设置"按钮配置');
+        return;
+    }
+    
     // 获取设置
     const model = document.getElementById('modelSelect')?.value || 'wan';
     const duration = document.getElementById('durationSelect')?.value || '4';
@@ -141,64 +151,135 @@ async function generateVideo() {
     document.getElementById('resultContent').classList.add('hidden');
     document.getElementById('resultGenerating').classList.remove('hidden');
     
-    // 模拟进度
     const progressFill = document.getElementById('progressFill');
     const generatingText = document.getElementById('generatingText');
     const timeRemaining = document.getElementById('timeRemaining');
     
-    const stages = [
-        { progress: 10, text: '正在解析提示词...', time: 40 },
-        { progress: 25, text: '加载模型中...', time: 35 },
-        { progress: 45, text: '生成视频帧...', time: 25 },
-        { progress: 70, text: '优化视频质量...', time: 15 },
-        { progress: 90, text: '最终渲染中...', time: 5 },
-        { progress: 100, text: '生成完成！', time: 0 }
-    ];
+    try {
+        // 调用后端API
+        const response = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                duration: duration,
+                provider: provider,
+                apiKey: apiKey,
+                imageUrl: currentMode === 'image' ? uploadedImageData : null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || data.error) {
+            throw new Error(data.message || data.error || '生成失败');
+        }
+        
+        // 如果正在处理中，轮询状态
+        if (data.status === 'processing' && (data.predictionId || data.requestId)) {
+            generatingText.textContent = 'AI正在生成视频，请稍候...';
+            timeRemaining.textContent = '约60秒';
+            
+            const finalResult = await pollGenerationStatus(data, provider, apiKey);
+            data.videoUrl = finalResult.videoUrl;
+        }
+        
+        // 显示结果
+        document.getElementById('resultGenerating').classList.add('hidden');
+        document.getElementById('resultContent').classList.remove('hidden');
+        
+        // 设置视频
+        const video = document.getElementById('generatedVideo');
+        video.src = data.videoUrl;
+        video.load();
+        
+        // 更新信息
+        const modelNames = { wan: 'Wan 2.1', cogvideo: 'CogVideoX', opensora: 'Open-Sora' };
+        document.getElementById('resultModel').textContent = modelNames[model] || model;
+        document.getElementById('resultResolution').textContent = resolution;
+        document.getElementById('resultDuration').textContent = duration + '秒';
+        document.getElementById('resultTime').textContent = '已完成';
+        
+        // 保存到历史
+        saveToHistory({
+            prompt,
+            model,
+            duration,
+            resolution,
+            videoUrl: data.videoUrl,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('生成错误:', error);
+        alert('生成失败: ' + error.message);
+        
+        document.getElementById('resultGenerating').classList.add('hidden');
+        document.getElementById('resultEmpty').classList.remove('hidden');
+    } finally {
+        isGenerating = false;
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = `
+            <span class="btn-icon">✨</span>
+            <span class="btn-text">开始生成视频</span>
+            <span class="btn-time">预计 30-60 秒</span>
+        `;
+    }
+}
+
+// 轮询生成状态
+async function pollGenerationStatus(data, provider, apiKey) {
+    const maxAttempts = 60;
+    const delay = 2000;
     
-    for (const stage of stages) {
-        await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
-        progressFill.style.width = stage.progress + '%';
-        generatingText.textContent = stage.text;
-        timeRemaining.textContent = stage.time;
+    const predictionId = data.predictionId;
+    const requestId = data.requestId;
+    
+    for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(r => setTimeout(r, delay));
+        
+        try {
+            // 使用后端 API 查询状态
+            const response = await fetch('/api/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    provider: provider,
+                    predictionId: predictionId,
+                    requestId: requestId,
+                    apiKey: apiKey
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'completed' || result.status === 'succeeded') {
+                return { videoUrl: result.videoUrl };
+            } else if (result.status === 'failed' || result.error) {
+                throw new Error(result.error || '生成失败');
+            }
+            
+            // 更新进度
+            const progress = result.progress || Math.min(10 + (i / maxAttempts) * 80, 90);
+            const progressFill = document.getElementById('progressFill');
+            const generatingText = document.getElementById('generatingText');
+            if (progressFill) {
+                progressFill.style.width = progress + '%';
+            }
+            if (generatingText && result.logs) {
+                generatingText.textContent = 'AI生成中... ' + (result.logs.split('\n').pop() || '');
+            }
+            
+        } catch (e) {
+            console.warn('轮询出错:', e);
+        }
     }
     
-    // 显示结果
-    await new Promise(r => setTimeout(r, 500));
-    
-    document.getElementById('resultGenerating').classList.add('hidden');
-    document.getElementById('resultContent').classList.remove('hidden');
-    
-    // 设置视频
-    const video = document.getElementById('generatedVideo');
-    const randomVideo = demoVideos[Math.floor(Math.random() * demoVideos.length)];
-    video.src = randomVideo;
-    video.load();
-    
-    // 更新信息
-    const modelNames = { wan: 'Wan 2.1', cogvideo: 'CogVideoX', opensora: 'Open-Sora' };
-    document.getElementById('resultModel').textContent = modelNames[model] || model;
-    document.getElementById('resultResolution').textContent = resolution;
-    document.getElementById('resultDuration').textContent = duration + '秒';
-    document.getElementById('resultTime').textContent = Math.floor(30 + Math.random() * 30) + '秒';
-    
-    // 恢复按钮
-    isGenerating = false;
-    generateBtn.disabled = false;
-    generateBtn.innerHTML = `
-        <span class="btn-icon">✨</span>
-        <span class="btn-text">开始生成视频</span>
-        <span class="btn-time">预计 30-60 秒</span>
-    `;
-    
-    // 保存到历史
-    saveToHistory({
-        prompt,
-        model,
-        duration,
-        resolution,
-        videoUrl: randomVideo,
-        timestamp: new Date().toISOString()
-    });
+    throw new Error('生成超时，请稍后刷新查看结果');
 }
 
 // 保存到历史
