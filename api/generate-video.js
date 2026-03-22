@@ -95,8 +95,8 @@ async function generateWithFal(prompt, duration, apiKey, imageUrl) {
 
 // Replicate 视频生成
 async function generateWithReplicate(prompt, duration, apiKey, imageUrl) {
-    // 根据是否有图片选择不同模型
-    const version = imageUrl 
+    // Replicate 模型标识符
+    const model = imageUrl 
         ? 'wavespeedai/wan-2.1-i2v-480p'  // 图生视频
         : 'wavespeedai/wan-2.1-t2v-480p'; // 文生视频
     
@@ -104,9 +104,12 @@ async function generateWithReplicate(prompt, duration, apiKey, imageUrl) {
         prompt: prompt,
         num_frames: (parseInt(duration) || 4) * 8,
         fps: 8,
-        guidance_scale: 7.5,
-        ...(imageUrl && { image: imageUrl })
+        guidance_scale: 7.5
     };
+    
+    if (imageUrl) {
+        input.image = imageUrl;
+    }
     
     const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
@@ -116,7 +119,7 @@ async function generateWithReplicate(prompt, duration, apiKey, imageUrl) {
             'Prefer': 'respond-async'
         },
         body: JSON.stringify({
-            version: `${version}:latest`,
+            model: model,  // 使用 model 字段，不是 version
             input: input
         })
     });
