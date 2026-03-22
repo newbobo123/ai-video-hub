@@ -170,24 +170,98 @@ function switchGenMode(mode, element) {
     const tabs = document.querySelectorAll('.gen-tab');
     tabs.forEach(function(t) { t.classList.remove('active'); });
     if (element) element.classList.add('active');
+    
+    // 切换输入区域显示
+    const textSection = document.getElementById('textInputSection');
+    const imageSection = document.getElementById('imageInputSection');
+    
+    if (mode === 'text') {
+        if (textSection) textSection.classList.remove('hidden');
+        if (imageSection) imageSection.classList.add('hidden');
+    } else {
+        if (textSection) textSection.classList.add('hidden');
+        if (imageSection) imageSection.classList.remove('hidden');
+    }
+}
+
+// ===== 图片上传处理 =====
+function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件', 'error');
+        return;
+    }
+    
+    // 验证文件大小（最大 10MB）
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('图片大小不能超过 10MB', 'error');
+        return;
+    }
+    
+    // 读取并显示图片
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = document.getElementById('uploadedImage');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        const changeBtn = document.getElementById('changeImageBtn');
+        const uploadArea = document.querySelector('.image-upload-area');
+        
+        if (img) {
+            img.src = e.target.result;
+            img.classList.remove('hidden');
+        }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (changeBtn) changeBtn.classList.remove('hidden');
+        if (uploadArea) uploadArea.classList.add('has-image');
+        
+        showToast('图片上传成功', 'success');
+        
+        // 保存图片数据到全局变量
+        window.uploadedImageData = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
 function usePrompt(prompt) {
     const textarea = document.getElementById('quickPrompt');
-    if (textarea) {
+    const imageTextarea = document.getElementById('imagePrompt');
+    
+    if (currentGenMode === 'image' && imageTextarea) {
+        imageTextarea.value = prompt;
+        imageTextarea.focus();
+    } else if (textarea) {
         textarea.value = prompt;
         textarea.focus();
-        showToast('提示词已填入', 'success');
     }
+    showToast('提示词已填入', 'success');
 }
 
 function quickGenerate() {
-    console.log('[Generate] 开始生成');
+    console.log('[Generate] 开始生成，模式：' + currentGenMode);
     
-    const promptEl = document.getElementById('quickPrompt');
-    const prompt = promptEl ? promptEl.value.trim() : '';
+    let prompt = '';
+    let imageData = null;
     
-    if (!prompt) {
+    if (currentGenMode === 'image') {
+        // 图生视频模式
+        const imagePromptEl = document.getElementById('imagePrompt');
+        prompt = imagePromptEl ? imagePromptEl.value.trim() : '';
+        
+        if (!window.uploadedImageData) {
+            showToast('请先上传图片', 'error');
+            return;
+        }
+        imageData = window.uploadedImageData;
+    } else {
+        // 文生视频模式
+        const promptEl = document.getElementById('quickPrompt');
+        prompt = promptEl ? promptEl.value.trim() : '';
+    }
+    
+    if (!prompt && currentGenMode === 'text') {
         showToast('请输入视频描述', 'error');
         return;
     }
