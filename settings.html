@@ -257,6 +257,14 @@
                     <span class="icon">⚡</span>
                     <span class="name">Fal.ai</span>
                 </div>
+                <div class="provider-tab" onclick="selectProvider('aliyun')" id="tab-aliyun">
+                    <span class="icon">🇨🇳</span>
+                    <span class="name">通义万相</span>
+                </div>
+                <div class="provider-tab" onclick="selectProvider('siliconflow')" id="tab-siliconflow">
+                    <span class="icon">💎</span>
+                    <span class="name">硅基流动</span>
+                </div>
             </div>
 
             <div class="form-group">
@@ -362,6 +370,12 @@
             if (provider === 'fal') {
                 tokenLabel.textContent = 'Fal.ai API Key (格式: xxxx-xxxx-xxxx-xxxx)';
                 tokenHelp.innerHTML = '可从 <a href="https://fal.ai/dashboard/keys" target="_blank">fal.ai/dashboard/keys</a> 获取';
+            } else if (provider === 'aliyun') {
+                tokenLabel.textContent = '阿里云 AccessKey (格式: LTAIxxxxx)';
+                tokenHelp.innerHTML = '可从 <a href="https://ram.console.aliyun.com/manage/ak" target="_blank">阿里云控制台-AccessKey</a> 获取<br>注意：需要同时输入 AccessKey ID 和 Secret，用英文冒号分隔';
+            } else if (provider === 'siliconflow') {
+                tokenLabel.textContent = '硅基流动 API Key';
+                tokenHelp.innerHTML = '可从 <a href="https://cloud.siliconflow.cn/account/ak" target="_blank">硅基流动控制台</a> 获取<br>新用户有免费额度';
             } else {
                 tokenLabel.textContent = 'Replicate API Token (格式: r8_xxxxxxxx)';
                 tokenHelp.innerHTML = '可从 <a href="https://replicate.com/account/api-tokens" target="_blank">replicate.com/account/api-tokens</a> 获取';

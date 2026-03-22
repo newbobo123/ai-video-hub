@@ -383,20 +383,53 @@ async function pollGenerationStatus(data, provider, prompt) {
         try {
             let statusUrl;
             let headers = {};
+            let result;
             
             if (provider === 'fal') {
                 statusUrl = `https://api.fal.ai/v1/requests/${id}`;
                 headers['Authorization'] = `Key ${token}`;
-            } else {
+                const response = await fetch(statusUrl, { headers });
+                result = await response.json();
+            } 
+            else if (provider === 'aliyun') {
+                // 阿里云需要解析AccessKey
+                const [accessKeyId] = token.split(':');
+                statusUrl = `https://dashscope.aliyuncs.com/api/v1/tasks/${id}`;
+                headers['Authorization'] = `Bearer ${accessKeyId}`;
+                const response = await fetch(statusUrl, { headers });
+                result = await response.json();
+                
+                // 阿里云状态映射
+                if (result.output?.task_status === 'SUCCEEDED') {
+                    const videoUrl = result.output.video_url || result.output.video_url_list?.[0];
+                    if (videoUrl) {
+                        finishRealGeneration(prompt, videoUrl);
+                        return;
+                    }
+                } else if (result.output?.task_status === 'FAILED') {
+                    throw new Error(result.output?.message || '阿里云生成失败');
+                }
+                // 继续轮询
+                setTimeout(checkStatus, 3000);
+                return;
+            }
+            else if (provider === 'siliconflow') {
+                statusUrl = `https://api.siliconflow.cn/v1/video/generations/${id}`;
+                headers['Authorization'] = `Bearer ${token}`;
+                const response = await fetch(statusUrl, { headers });
+                result = await response.json();
+            }
+            else {
+                // Replicate
                 statusUrl = `https://api.replicate.com/v1/predictions/${id}`;
                 headers['Authorization'] = `Token ${token}`;
+                const response = await fetch(statusUrl, { headers });
+                result = await response.json();
             }
             
-            const response = await fetch(statusUrl, { headers });
-            const result = await response.json();
-            
+            // 通用状态处理
             if (result.status === 'succeeded' || result.status === 'completed') {
-                const videoUrl = result.output?.video || result.video_url || result.output;
+                const videoUrl = result.output?.video || result.video_url || result.output || result.url;
                 if (videoUrl) {
                     finishRealGeneration(prompt, videoUrl);
                     return;

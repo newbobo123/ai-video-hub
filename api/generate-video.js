@@ -26,13 +26,21 @@ export default async function handler(req, res) {
     try {
         let result;
         
-        if (provider === 'fal') {
-            result = await generateWithFal(prompt, duration, apiKey, imageUrl);
-        } else if (provider === 'replicate') {
-            result = await generateWithReplicate(prompt, duration, apiKey, imageUrl);
-        } else {
-            // 默认使用 replicate
-            result = await generateWithReplicate(prompt, duration, apiKey, imageUrl);
+        switch (provider) {
+            case 'fal':
+                result = await generateWithFal(prompt, duration, apiKey, imageUrl);
+                break;
+            case 'replicate':
+                result = await generateWithReplicate(prompt, duration, apiKey, imageUrl);
+                break;
+            case 'aliyun':
+                result = await generateWithAliyun(prompt, duration, apiKey, imageUrl);
+                break;
+            case 'siliconflow':
+                result = await generateWithSiliconFlow(prompt, duration, apiKey, imageUrl);
+                break;
+            default:
+                result = await generateWithReplicate(prompt, duration, apiKey, imageUrl);
         }
         
         return res.status(200).json(result);
@@ -119,7 +127,7 @@ async function generateWithReplicate(prompt, duration, apiKey, imageUrl) {
             'Prefer': 'respond-async'
         },
         body: JSON.stringify({
-            model: model,  // 使用 model 字段，不是 version
+            model: model,
             input: input
         })
     });
@@ -137,4 +145,110 @@ async function generateWithReplicate(prompt, duration, apiKey, imageUrl) {
         status: 'processing',
         provider: 'replicate'
     };
+}
+
+// 阿里云通义万相视频生成
+async function generateWithAliyun(prompt, duration, apiKey, imageUrl) {
+    // 解析 AccessKey
+    const [accessKeyId, accessKeySecret] = apiKey.split(':');
+    
+    if (!accessKeyId || !accessKeySecret) {
+        throw new Error('阿里云 AccessKey 格式错误，请使用 "AccessKeyID:AccessKeySecret" 格式');
+    }
+    
+    // 选择模型
+    const model = imageUrl 
+        ? 'wanx2.1-i2v-turbo'  // 图生视频
+        : 'wanx2.1-t2v-turbo'; // 文生视频
+    
+    const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessKeyId}`,
+            'Content-Type': 'application/json',
+            'X-DashScope-DataInspection': 'disable'
+        },
+        body: JSON.stringify({
+            model: model,
+            input: imageUrl ? {
+                prompt: prompt,
+                img_url: imageUrl
+            } : {
+                prompt: prompt
+            },
+            parameters: {
+                size: '1280*720',
+                duration: parseInt(duration) || 4
+            }
+        })
+    });
+    
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`阿里云 API error: ${response.status} - ${error}`);
+    }
+    
+    const data = await response.json();
+    
+    // 阿里云返回任务ID
+    if (data.output?.task_id) {
+        return {
+            success: true,
+            predictionId: data.output.task_id,
+            status: 'processing',
+            provider: 'aliyun'
+        };
+    }
+    
+    throw new Error('Unexpected 阿里云 API response');
+}
+
+// 硅基流动视频生成
+async function generateWithSiliconFlow(prompt, duration, apiKey, imageUrl) {
+    // 硅基流动支持多种模型
+    const model = imageUrl 
+        ? 'stabilityai/stable-video-diffusion'  // 图生视频
+        : 'lightricks/ltx-video';  // 文生视频
+    
+    const response = await fetch('https://api.siliconflow.cn/v1/video/generations', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: model,
+            prompt: prompt,
+            ...(imageUrl && { image_url: imageUrl }),
+            duration: parseInt(duration) || 4,
+            size: '1280x720'
+        })
+    });
+    
+    if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`硅基流动 API error: ${response.status} - ${error}`);
+    }
+    
+    const data = await response.json();
+    
+    // 硅基流动可能直接返回视频URL或任务ID
+    if (data.video_url || data.url) {
+        return {
+            success: true,
+            videoUrl: data.video_url || data.url,
+            status: 'completed'
+        };
+    }
+    
+    if (data.id || data.task_id) {
+        return {
+            success: true,
+            predictionId: data.id || data.task_id,
+            status: 'processing',
+            provider: 'siliconflow'
+        };
+    }
+    
+    throw new Error('Unexpected 硅基流动 API response');
 }
